@@ -43,7 +43,13 @@
 .dd-btn[aria-expanded="true"] .dd-mui { transform: rotate(180deg); }
 
 .dd-panel {
-  position: fixed; z-index: 400;
+  /* ☠️ z-index PHẢI TRÊN modal của CẢ HAI trang: members có .modal-backdrop
+     z-index 500 (hộp "Sửa tài khoản"), tool có modal cao nhất 321. Panel gắn vào
+     <body> nên là anh em của modal — để 400 (cũ) thì nó CHUI SAU hộp Sửa, mở ra
+     không thấy/không chọn được (chủ tool báo 16/09/2026 "dropdown hiện đằng sau
+     bảng"; đo: elementFromPoint tại tâm panel trả về .modal-backdrop). 600 > 500
+     mà vẫn < 900 của dialog.css (alert/confirm phải phủ được dropdown). */
+  position: fixed; z-index: 600;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);

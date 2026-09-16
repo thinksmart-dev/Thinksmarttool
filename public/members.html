@@ -9,8 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400&display=swap" rel="stylesheet">
   <!-- animate.min.css GO 11/08/2026: 70 KB CSS chan viec ve trang tren ca 4 trang,
        ma do ra 0/105 class duoc dung o bat cu dau. Muon dung lai thi them link nay ve. -->
-  <link rel="stylesheet" href="/portal.css?v=87">
-  <link rel="stylesheet" href="/dropdown.css?v=1">
+  <link rel="stylesheet" href="/portal.css?v=90">
+  <link rel="stylesheet" href="/dropdown.css?v=2">
   <link rel="stylesheet" href="/dialog.css?v=4">
 </head>
 <body>
@@ -97,10 +97,24 @@
              NỚI 10/08/2026 — trước đó chỉ Super Admin. Mở tab ở đây KHÔNG đủ: 4 policy
              trong schema.sql (usage_events · presence · storage · khoa_muc) cũng phải là
              is_admin(), không thì Admin bấm vào chỉ thấy trống trơn. -->
-        <div class="ms-tabs" id="ms-tabs" role="tablist" aria-label="Chế độ xem" style="display:none">
-          <button class="ms-tab is-on" id="tab-members" role="tab" aria-selected="true" type="button">Thành viên</button>
-          <button class="ms-tab" id="tab-usage" role="tab" aria-selected="false" type="button">Đo lường sử dụng</button>
-          <button class="ms-tab" id="tab-khoa" role="tab" aria-selected="false" type="button">Khoá mục</button>
+        <!-- Tabs + ô TÌM cùng MỘT hàng (chủ tool 16/09/2026 — trước đây tabs và ô tìm
+             xếp hai hàng chồng nhau, cuộn nhìn "dồn cục"). ms-head ẩn tới khi members.js
+             xác thực xong; ô tìm chỉ hiện ở tab "Thành viên" (doiTab bật/tắt). -->
+        <div class="ms-head" id="ms-head" style="display:none">
+          <div class="mem-search" id="mem-search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="search" id="mem-search" autocomplete="off"
+                   placeholder="Tìm theo tên hoặc email…" aria-label="Tìm thành viên">
+            <button type="button" id="mem-search-clear" title="Xoá ô tìm" aria-label="Xoá ô tìm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <span class="mem-hit" id="mem-hit" aria-live="polite"></span>
+          <div class="ms-tabs" id="ms-tabs" role="tablist" aria-label="Chế độ xem">
+            <button class="ms-tab is-on" id="tab-members" role="tab" aria-selected="true" type="button">Thành viên</button>
+            <button class="ms-tab" id="tab-usage" role="tab" aria-selected="false" type="button">Đo lường sử dụng</button>
+            <button class="ms-tab" id="tab-khoa" role="tab" aria-selected="false" type="button">Khoá mục</button>
+          </div>
         </div>
 
         <div id="page-content" style="display:none">
@@ -108,20 +122,10 @@
                trong members.js (nút + làm mờ bảng) — cố ý không dùng banner nữa. -->
           <div id="load-msg" class="notice error" style="display:none"></div>
 
-          <!-- Thanh công cụ danh sách (22/07/2026).
-               Ô TÌM luôn hiện; nhóm nút hàng loạt chỉ hiện khi đã chọn ít nhất 1 người.
-               Trước đây cả thanh bị ẩn khi chưa chọn ai → ô tìm cũng biến mất theo,
-               nên ô tìm phải nằm NGOÀI .bulk-actions. -->
-          <div class="bulk-bar" id="bulk-bar" role="region" aria-label="Tìm và thao tác hàng loạt">
-            <div class="mem-search">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="search" id="mem-search" autocomplete="off"
-                     placeholder="Tìm theo tên hoặc email…" aria-label="Tìm thành viên">
-              <button type="button" id="mem-search-clear" title="Xoá ô tìm" aria-label="Xoá ô tìm">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-            <span class="mem-hit" id="mem-hit" aria-live="polite"></span>
+          <!-- Thanh thao tác hàng loạt: chỉ hiện khi đã chọn ít nhất 1 người (CSS
+               .bulk-bar:not(.open){display:none}). Ô TÌM đã chuyển lên .ms-head cùng
+               hàng với tabs (16/09/2026) nên thanh này không còn chứa ô tìm nữa. -->
+          <div class="bulk-bar" id="bulk-bar" role="region" aria-label="Thao tác hàng loạt">
             <!-- Nhóm nút hàng loạt — thiết kế lại 22/07 (chủ tool: "nhìn vào thấy nó bị rối").
                  3 nguyên tắc:
                  1) MỘT kiểu nút cho việc thường, MỘT kiểu cho việc phá huỷ. Bản cũ 5 nút
@@ -569,8 +573,8 @@
       </main>
 
       <footer class="portal-footer">
-        <span class="version-badge">v1.49</span>
-        <span>18/08/2026 · Thinksmart Insurance — lưu hành nội bộ</span>
+        <span class="version-badge">v1.50</span>
+        <span>16/09/2026 · Thinksmart Insurance — lưu hành nội bộ</span>
       </footer>
     </div>
   </div>
@@ -585,8 +589,8 @@
   <script src="/js/portal/config.js?v=8"></script>
   <script src="/js/portal/auth.js?v=11"></script>
   <script src="/js/ui-dialog.js?v=3"></script>
-  <script src="/js/dropdown.js?v=2"></script>
-  <script src="/js/portal/members.js?v=64"></script>
+  <script src="/js/dropdown.js?v=3"></script>
+  <script src="/js/portal/members.js?v=66"></script>
   <script src="/vendor/gsap.min.js?v=3.15.0"></script>
   <script src="/js/animations.js?v=4"></script>
 </body>

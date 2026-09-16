@@ -555,6 +555,10 @@
       PHONG_BAN.map(function (d) {
         return '<option value="' + esc(d) + '"' + (d === (p.department || '').trim() ? ' selected' : '') + '>' + esc(d) + '</option>';
       }).join('');
+    // ☠️ Custom dropdown (js/dropdown.js) chỉ cập nhật nhãn nút khi nghe 'change'.
+    // Đổ option bằng innerHTML KHÔNG tự bắn 'change' → nút hiện rỗng cho tới khi
+    // người dùng bấm mở (đo 16/09/2026: ô Quyền trống trong hộp Sửa). Bắn tay.
+    $('edit-dept').dispatchEvent(new Event('change'));
 
     // Quyền: CHỈ Super Admin đổi được (server chặn lại lần nữa). Danh sách chọn vẫn
     // là user/admin — không phong Super Admin qua giao diện; chỉ thêm mục super_admin
@@ -566,6 +570,7 @@
     $('edit-role').innerHTML = dsQuyen.map(function (r) {
       return '<option value="' + esc(r) + '"' + (r === p.role ? ' selected' : '') + '>' + esc(ROLE_LABEL[r] || r) + '</option>';
     }).join('');
+    $('edit-role').dispatchEvent(new Event('change'));   // nhãn nút — xem ghi chú ở edit-dept
 
     const kq = $('edit-result'); kq.style.display = 'none'; kq.textContent = '';
     $('edit-backdrop').classList.add('open');
@@ -727,6 +732,7 @@
       PHONG_BAN.map(function (d) {
         return '<option value="' + esc(d) + '"' + (d === giaTriHienTai ? ' selected' : '') + '>' + esc(d) + '</option>';
       }).join('');
+    sel.dispatchEvent(new Event('change'));   // nhãn nút custom dropdown — xem ghi chú ở edit-dept
     $('dept-who').textContent = tieuDe;
     deptCallback = xong;
     $('dept-backdrop').classList.add('open');
@@ -1000,7 +1006,7 @@
     // ⚠️ Mở tab ở đây KHÔNG đủ: 4 policy trong schema.sql cũng phải là is_admin(), không
     // thì admin bấm vào chỉ thấy trống trơn (usage_events · presence · storage · khoa_muc).
     if (!me || !['admin', 'super_admin'].includes(me.role)) return;
-    $('ms-tabs').style.display = '';   // bỏ inline none → về CSS inline-flex (hug nội dung)
+    $('ms-head').style.display = '';   // lộ hàng tabs + ô tìm (bỏ inline none → về CSS flex)
     $('tab-members').addEventListener('click', function () { doiTab('members'); });
     $('tab-usage').addEventListener('click', function () { doiTab('usage'); });
     $('tab-khoa').addEventListener('click', function () { doiTab('khoa'); });
@@ -1085,6 +1091,10 @@
       if (nut) { nut.classList.toggle('is-on', dang); nut.setAttribute('aria-selected', String(dang)); }
       if (panel) panel.style.display = dang ? 'block' : 'none';
     });
+    // Ô tìm nằm chung hàng với tabs nhưng chỉ có nghĩa ở tab "Thành viên" —
+    // sang Đo lường / Khoá mục thì ẩn đi (16/09/2026).
+    const oTim = $('mem-search-wrap'); if (oTim) oTim.style.display = which === 'members' ? '' : 'none';
+    const oHit = $('mem-hit'); if (oHit) oHit.style.display = which === 'members' ? '' : 'none';
     if (which === 'usage' && !usageLoaded) { usageLoaded = true; taiDoLuong(); }
     if (which === 'khoa') taiKhoaMuc();
   }

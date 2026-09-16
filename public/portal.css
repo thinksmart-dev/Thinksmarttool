@@ -799,6 +799,9 @@ body.dark-theme .field-hint { color: #E9A23B; }
   border-radius: var(--r-lg); box-shadow: var(--shadow-sm);
   transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
+/* Ô TÌM đã chuyển lên .ms-head (16/09/2026) nên thanh này chỉ còn nhóm nút hàng
+   loạt → chưa chọn ai thì ẨN HẲN, không để lại một thanh viền rỗng. */
+.bulk-bar:not(.open) { display: none; }
 .bulk-bar.open { border-color: var(--brand-ring); box-shadow: var(--shadow-md); }
 .bulk-actions { display: none; }
 .bulk-bar.open .bulk-actions {
@@ -1645,6 +1648,18 @@ button:active, .btn:active, .icon-btn:active, .sidebar-nav a:active, .sidebar-fo
 }
 .ms-tab:hover { color: var(--text); }
 .ms-tab.is-on { background: var(--surface); color: var(--text); box-shadow: var(--shadow-xs); }
+
+/* Hàng đầu: ô TÌM (trái) + tabs (phải) trên MỘT dòng (chủ tool 16/09/2026).
+   Trước đây tabs và ô tìm xếp hai hàng chồng nhau; gộp lại cho gọn, cuộn đỡ "dồn cục".
+   Tabs bám SÁT MÉP PHẢI ngoài cùng — thẳng mép phải cột "Tổng quan" và thẳng mép phải
+   thẻ .topbar phía trên (chủ tool chốt 16/09/2026; bản đầu chừa 328px để dừng ở mép
+   bảng, anh yêu cầu đẩy ra sát mép). ĐỪNG thêm lại padding-right.
+   flex-wrap để màn hẹp thì tabs tự xuống hàng, không bóp méo ô tìm. */
+.ms-head {
+  display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.ms-head .ms-tabs { margin-bottom: 0; margin-left: auto; }   /* đẩy tabs sang mép phải */
 
 /* Dải số liệu — MỘT nguồn duy nhất, đổi theo khoảng đang chọn (gọn 27/07).
    Thay cho 4 thẻ "Hôm nay" (3 dòng chữ, số 30px) + danh sách "Trong khoảng này"

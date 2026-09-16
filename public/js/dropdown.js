@@ -104,7 +104,11 @@
   }
 
   function dongBoNhan(d) {
-    d.nhan.textContent = d.sel.value;
+    // ☠️ Hien CHU cua option dang chon, KHONG hien d.sel.value. Voi o "Quyen"
+    // value la 'user'/'admin' con chu la 'Nhan vien'/'Admin' — lay value thi nut
+    // hien sai (do 16/09/2026). Voi "Phong ban" value == chu nen loi nay bi che.
+    var o = d.sel.options[d.sel.selectedIndex];
+    d.nhan.textContent = o ? o.textContent : '';
     d.panel.querySelectorAll('.dd-muc').forEach(function (m) {
       m.setAttribute('aria-selected', m.dataset.gt === d.sel.value ? 'true' : 'false');
     });

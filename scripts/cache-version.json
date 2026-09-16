@@ -4,8 +4,8 @@
     "bam": "7091b8f31b67"
   },
   "dropdown.css": {
-    "v": "1",
-    "bam": "f4263b2dc792"
+    "v": "2",
+    "bam": "5fcb6ef8f994"
   },
   "js/animations.js": {
     "v": "4",
@@ -20,8 +20,8 @@
     "bam": "dd97c4adefcd"
   },
   "js/dropdown.js": {
-    "v": "2",
-    "bam": "b5063e45053b"
+    "v": "3",
+    "bam": "b0b00e246f9a"
   },
   "js/main.js": {
     "v": "22",
@@ -40,8 +40,8 @@
     "bam": "60bca9fe50ff"
   },
   "js/portal/members.js": {
-    "v": "64",
-    "bam": "16f3ac653b46"
+    "v": "66",
+    "bam": "84fdb8b625b8"
   },
   "js/portal/videos.js": {
     "v": "2",
@@ -68,8 +68,8 @@
     "bam": "42e3b54ad49d"
   },
   "portal.css": {
-    "v": "87",
-    "bam": "db729977c2e6"
+    "v": "90",
+    "bam": "2ecc16a5d946"
   },
   "style.css": {
     "v": "117",
