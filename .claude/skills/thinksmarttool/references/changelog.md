@@ -78,6 +78,48 @@ và bảo chủ tool reload bằng **Ctrl+Shift+R**. Số đo sai suýt làm s�
 ☠️ **Đối chứng cửa chặn** (bài `5aj`): cố tình sửa `portal.css` mà không bump → `kiem-cache-version.js`
 báo **đỏ, exit 1**, chỉ đúng tên file + đúng 4 chỗ phải sửa; gỡ ra → xanh, exit 0. Cửa này BIẾT đỏ.
 
+### D. ĐƯA LÊN LIVE — mất ~1,5 tiếng, SÁU giả thuyết, bốn cái SAI
+
+Code sửa xong trong ~30 phút. Phần còn lại là đưa nó lên live. Ghi lại vì **không cái nào suy ra được
+từ mã nguồn**, và cả 4 cái sai đều "nghe rất hợp lý". Chi tiết đầy đủ ở `deployment.md`.
+
+| # | Giả thuyết | Đúng/Sai | Bác bỏ bằng gì |
+|---|---|---|---|
+| 1 | Remote git hỏng (`<tên-org>` giữ chỗ) | ✅ **đúng** (lỗi 400) | `git remote -v` |
+| 2 | Sai tài khoản GitHub | ✅ **đúng** (403 `Vincentnguyen1809`) | thông báo của GitHub |
+| 3 | Xoá credential Windows là xong | ❌ **sai** | xoá rồi push vẫn 403 y hệt |
+| 4 | Vercel đứt kết nối Git | ❌ **sai** | Settings → Git vẫn "Connected" |
+| 5 | Vercel App thiếu quyền trên org mới | ❌ **sai** | Configure → đủ quyền, đúng repo |
+| 6 | Kho đầy (**99,98 GB / 10 GB**) nên bị chặn | ❌ **sai** | bấm Redeploy → **build ngon trong 5 giây** |
+
+**Gốc thật (2 tầng, không liên quan nhau):**
+- **Tầng git:** `gh auth login` trả lời "Yes" ở bước *Authenticate Git with your GitHub credentials?* đã ghi
+  `credential.https://github.com.helper = !gh auth git-credential` vào `--global`. Dòng **theo-URL** này
+  **đè** `credential.helper = manager` ở `--system` ⇒ git thôi hỏi kho Windows, đi hỏi `gh` (đang cầm tài
+  khoản sai). Gỡ bằng `git config --global --unset-all credential.https://github.com.helper`.
+- **Tầng Vercel:** có **HAI project** cùng nối repo. `tool.thinksmartinsurance.com` thuộc
+  **`thinksmarttool-gy6f`**, mà project đó vẫn trỏ repo **tên CŨ** `hadangtien0702-dot/Thinksmarttool`
+  ⇒ push vào org mới không đánh thức nó. **Lần đầu deploy còn bắn nhầm sang project `thinksmarttool`**
+  (domain `editor-proposesalsale.vercel.app`) — Vercel báo *Ready* mà live vẫn v1.49.
+
+☠️☠️ **BÀI HỌC ĐẮT NHẤT: suýt để chủ tool xoá 200 deployment vì tin giả thuyết #6.** Con số
+"99,98 GB / 10 GB" **có thật**, nằm ngay cạnh triệu chứng **có thật**, và câu chuyện nhân quả nghe trôi
+chảy. Chủ tool đã chốt "Hướng A — xoá bớt deployment cũ". **Một phép thử Redeploy tốn 5 giây đã bác bỏ
+nó** và cứu nguyên vẹn lịch sử deploy. → **Hai bất thường đứng cạnh nhau KHÔNG chứng minh cái này gây ra
+cái kia. Trước khi làm việc PHÁ (xoá, ghi đè), phải có phép thử XÁC NHẬN nguyên nhân — rẻ hơn nhiều.**
+
+☠️ **Dấu vân tay chỉ đúng thủ phạm:** hộp *Create Deployment* ghi repo **tên CŨ**, trang *Settings → Git*
+ghi **tên MỚI** — **hai chỗ trong cùng một dashboard mâu thuẫn nhau** (đúng bài `5`: hai phép đo chọi nhau
+thì một cái là công cụ hỏng).
+
+**Kết quả đo trên bản live** (không tin chữ "Ready" của Vercel):
+`v1.50 · 16/09/2026` · `portal.css?v=90` · `dropdown.css?v=2` · `dropdown.js?v=3` · `members.js?v=66` ·
+`ms-head` có trong HTML · `z-index: 600` trong dropdown.css.
+
+⚠️ **CÒN TREO:** auto-deploy vẫn CHẾT. Từ giờ **push KHÔNG tự lên live** — phải deploy tay theo 5 bước ở
+`deployment.md`. Sửa gốc: `thinksmarttool-gy6f` → Settings → Git → Disconnect + Connect lại vào
+`thinksmart-dev/Thinksmarttool`. **Chưa làm — chờ chủ tool duyệt** vì đụng cấu hình bản live của 77 người.
+
 ---
 
 ## 2026-09-16 (chiều) — MờI gofinvn VÀO SUPABASE (Administrator)
