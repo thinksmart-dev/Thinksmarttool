@@ -5,6 +5,141 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-09-16 15:29 — v1.50 · SỬA DROPDOWN HỘP "SỬA TÀI KHOẢN" + GỘP TABS/Ô TÌM MỘT HÀNG
+
+Chủ tool báo hai lỗi ở `/members`, sửa gốc cả hai. **Đã push, v1.49 → v1.50.**
+
+### A. Hộp "Sửa tài khoản": ô Quyền trống + danh sách chui sau hộp
+
+Triệu chứng chủ tool mô tả: *"dropdown không có được"*, *"nó hiện đằng sau cái bảng"*.
+`select.select-field` bị `js/dropdown.js` thay bằng panel tự dựng → hai lỗi **độc lập**:
+
+| # | Gốc (đã đo) | Sửa |
+|---|---|---|
+| 1 | `.dd-panel` `z-index:400` mà `.modal-backdrop` của members là **500**; panel `appendChild` vào `<body>` nên là ANH EM với modal → bị đè. Đo: `elementFromPoint` tại tâm panel trả về `.modal-backdrop` | `dropdown.css`: z-index **400 → 600** (trên modal 500, dưới `dialog.css` 900 để alert vẫn phủ được) |
+| 2 | `dongBoNhan()` gán `d.nhan.textContent = d.sel.value` → ô Quyền hiện **mã** (`user`) chứ không hiện **chữ** (`Nhân viên`). Ô Phòng ban value == chữ nên lỗi bị CHE | `dropdown.js`: lấy `d.sel.options[d.sel.selectedIndex].textContent` |
+| 3 | `members.js` đổ option bằng `innerHTML` nhưng **không bắn `change`** → nhãn nút đứng im RỖNG tới khi người dùng bấm mở | `members.js`: `dispatchEvent(new Event('change'))` sau mỗi lần đổ option — **3 chỗ**: `edit-dept`, `edit-role`, `dept-select` |
+
+**Đo trước/sau trên chính code thật** (harness nạp `dropdown.css`/`dropdown.js` thật):
+
+| | Trước | Sau |
+|---|---|---|
+| Nhãn ô Quyền | `""` | `"Nhân viên"` |
+| Nhãn ô Phòng ban | `""` | `"Sale"` |
+| Phần tử trên cùng tại tâm panel | `modal-backdrop` (che) | `dd-muc` (chọn được) |
+
+☠️ **Bài học `5k` lặp lại ở tầng CSS:** lỗi #2 sống sót lâu vì ô Phòng ban có `value === textContent`
+nên nhìn thì ĐÚNG. Chỉ ô Quyền (value `user` ≠ chữ `Nhân viên`) mới lộ. **Hai ô cùng một
+component, một ô đúng một ô sai ⇒ nghi chỗ CHÚNG KHÁC NHAU, không nghi component.**
+
+### B. "Khi scroll bị dồn cục" — và nó KHÔNG phải do bản sửa A
+
+Chủ tool gửi 2 ảnh trước/sau khi cuộn. Đo ra **hai** nguồn, cả hai **có sẵn từ lâu**
+(`git diff public/portal.css` lúc đó **rỗng** — bản sửa A không đụng file này):
+
+1. `.topbar` dính ở `top: 8px` → còn **khe 8px trong suốt phía trên**. Đo: `elementFromPoint(350, 2)`
+   và `(350, 6)` trả về **DIV hàng bảng**, không phải topbar → hàng cuộn lọt qua khe.
+2. `--header-bg: rgba(255,255,255,0.88)` + `backdrop-filter: blur(14px)` → 12% trong, bảng
+   dày chữ thấm mờ qua thân header. (Chế độ tối `--header-bg` đặc nên KHÔNG bị.)
+
+→ Đưa 2 hướng sửa kính mờ cho chủ tool chọn. **Chủ tool chọn hướng KHÁC**: gộp hàng tabs
+lên cùng hàng ô tìm cho bớt tầng chồng. **Hai nguồn trên vẫn còn nguyên, chưa sửa** — nếu
+sau này còn thấy "dồn cục" thì xử ở đây, đừng đi tìm lại từ đầu.
+
+### C. Gộp tabs + ô tìm vào MỘT hàng (chủ tool chốt, sửa vị trí 2 lần)
+
+- Thêm `.ms-head` (flex) trong `members.html`: **ô tìm bên TRÁI · tabs bên PHẢI**.
+  Thứ tự DOM = thứ tự nhìn thấy (ô tìm → `mem-hit` → tabs) cho bàn phím/screen reader.
+- `mem-search` + `mem-hit` **chuyển khỏi** `.bulk-bar` lên `.ms-head`. `#ms-tabs` mất inline
+  `display:none`, nay `members.js` lộ **`#ms-head`** thay vì `#ms-tabs` (dòng ~1009).
+- `doiTab()` ẩn/hiện `#mem-search-wrap` + `#mem-hit` — ô tìm chỉ có nghĩa ở tab Thành viên.
+- `.bulk-bar` giờ chỉ còn nhóm nút hàng loạt → `.bulk-bar:not(.open){display:none}` để không
+  để lại thanh viền rỗng. ⚠️ Đã kiểm `#filter-bar` là class **`.filter-bar`** riêng, luật này
+  KHÔNG cắn nhầm nó.
+- **Vị trí tabs sửa 2 lần**: bản đầu chừa `padding-right: calc(312px + 16px)` cho tabs dừng ở
+  mép phải BẢNG; chủ tool yêu cầu *"cho anh sát mép này"* → **bỏ hẳn padding**, tabs bám mép
+  phải ngoài cùng. **ĐỪNG thêm lại padding-right.**
+
+Đo (1600px): ô tìm `left 80` = mép trái bảng · tabs `right 1592` = mép phải cột Tổng quan
+= mép phải `.topbar`. Ở 1000px lưới về 1 cột, `flex-wrap` cho tabs xuống hàng, không tràn ngang.
+Chiều cao hàng đầu **~118px (2 hàng) → 42px (1 hàng)**.
+
+### Cửa chặn + cache
+
+- `kiem-truoc-push.js` ✅ · `kiem-cache-version.js` ✅ (đã `--ghi`).
+- Bump: `portal.css` 87 → **90** (4 trang) · `dropdown.css` 1 → **2** · `dropdown.js` 2 → **3**
+  (cả `members.html` + `tool.html`) · `portal/members.js` 64 → **66**.
+- Version badge **v1.50 · 16/09/2026** khớp cả 3 trang.
+
+☠️ **Vấp bẫy cache 2 lần khi ĐO**: sửa `portal.css` xong đo lại thấy "CSS không ăn" — thật ra
+trình duyệt giữ bản `?v=88` cũ. **Harness phải nạp CSS bằng query duy nhất** (`?nocache=<timestamp>`),
+và bảo chủ tool reload bằng **Ctrl+Shift+R**. Số đo sai suýt làm sửa nhầm CSS (đúng bài `5`).
+
+☠️ **Đối chứng cửa chặn** (bài `5aj`): cố tình sửa `portal.css` mà không bump → `kiem-cache-version.js`
+báo **đỏ, exit 1**, chỉ đúng tên file + đúng 4 chỗ phải sửa; gỡ ra → xanh, exit 0. Cửa này BIẾT đỏ.
+
+---
+
+## 2026-09-16 (chiều) — MờI gofinvn VÀO SUPABASE (Administrator)
+
+Chủ tool chốt mời **gofinvn@gmail.com** vào org Supabase `hadangtien0702-8981's projects`
+(đã gửi, trạng thái **INVITED**). Team giờ **2 người**: Tiến (Owner) + gofinvn (Administrator).
+
+→ **LÝ DO: ĐÂY LÀ BÀN GIAO TOOL.** gofinvn là bên **nhận bàn giao**, không phải cộng tác viên tạm thời — nên mức Administrator là có chủ đích, **đừng tự hạ xuống Developer** khi thấy quyền rộng.
+→ Chủ tool chốt 16/09: không siết thêm, không cần bật MFA ở bước này.
+
+**Administrator làm được gì:** quản lý thành viên (mời/gỡ người khác), xem+sửa thanh toán,
+**xoá được project**. Không đổi được cài đặt tổ chức, không gỡ được Owner.
+
+☠️ **Mọi mức quyền Supabase đều đọc ĐƯỢC TOÀN BỘ dữ liệu** qua Table/SQL Editor — kể cả
+Developer. Không có mức "chỉ xem vài bảng". Nên gofinvn đọc được `usage_events.detail`
+(tên/tuổi/bang/số tiền khách) và `proposal-snapshots` (ảnh báo giá đã gửi khách).
+→ Ai chỉ cần **dùng Tool** thì tạo tài khoản trong `/members`, ĐỪNG mời vào Supabase.
+→ Đã xoá 2 snippet chứa mật khẩu thô **TRƯỚC** khi mời — đúng thứ tự.
+
+⚠️ **MFA đang TẮT ở cả hai tài khoản** (cột MFA = Disabled). Org quản lý qua **Vercel
+Marketplace** nên một phần cài đặt truy cập nằm bên Vercel.
+
+---
+
+## 2026-09-16 (sáng) — TEAM PD LÊN SUPER ADMIN + DỌN TÊN 14 SNIPPET SQL
+
+**① `admin@gmail.com` (Team PD) → `super_admin`.** Chủ tool chạy `update public.profiles`
+trong SQL Editor (giao diện web KHÔNG phong Super Admin được — `members.js:559-565` chỉ cho
+chọn *Nhân viên* / *Admin*). Đã **đọc lại bằng đường khác** (luật `5l`) qua Chrome:
+
+| email | tên | role | status |
+|---|---|---|---|
+| admin@gmail.com | Team PD | `super_admin` | active |
+| hadangtien0702@gmail.com | Tiến | `super_admin` | active |
+
+Đếm toàn bảng: **super_admin 2 · admin 10 active + 1 deleted · user 85 active + 3 deleted + 2 pending**.
+→ Nay có **2 Super Admin**, khác với ghi chú cũ ở `quyen.sql:20` (*"đúng 1 người — chủ tool"*).
+Cả hai đọc được dữ liệu khách thật (`usage_events.detail` + `proposal-snapshots`).
+
+**② Supabase MCP KHÔNG với tới được project này.** Token đang ở org `abcuqidmnllfjuxehmcb`
+(chỉ thấy *Forum Thinksmart Insurance* + *thinksmart-operations-dashboard*). Project của Tool là
+**`tdgunknoldhtchflopvf`** (org `hadangtien0702-8981's projects`, tên `thinksmart-portal`) — gọi
+thẳng ref trả `You do not have permission`. Đo được là nhờ **Chrome remote**, không phải MCP.
+
+**③ Đặt tên lại toàn bộ 14 snippet SQL** (trước đó **9 cái "Untitled query"**, không ai biết cái nào
+làm gì). Quy ước: **NHÓM + số + việc nó làm**, không dấu cho đồng nhất, mô tả ghi rõ **ĐÃ CHẠY**
+hay **ĐỪNG CHạY LẠI**:
+
+`QUYEN 1/2` · `SCHEMA 0a/0b/1/1b/3/3b` · `DO LUONG` · `SALE - Dot 1/2` · `TAI KHOAN 0/1/2`
+
+→ Lộ ra **4 bản SCHEMA trùng/cũ** (2 bản 3-role giống hệt nhau, 2 bản cũ chỉ có `admin|user`).
+Chạy nhầm bản cũ là **đè lên schema đang chạy** — nên tên mới ghi thẳng *DA THAY THE / DUNG CHAY LAI*.
+
+**④ ☠️ HAI SNIPPET CHỨA MẬT KHẪU THÔ CỦA 69 SALE, VẪN NẰM TRÊN SUPABASE.**
+`SALE - Dot 1` (48 tài khoản) và `SALE - Dot 2` (21 tài khoản) — sinh 22/07/2026. Chính phần
+ghi chú trong file ra lệnh *"CHAY XONG THI XOA file nay"*, nhưng chúng vẫn ở đó **8 tuần**.
+Repo đã chặn `Account/` + `*.sql` bằng `.gitignore`, nhưng **snippet trên Supabase không ai chặn**
+— ai vào được dashboard là đọc được 69 mật khẩu. → **ĐÃ XOÁ CẢ HAI** (chủ tool chốt 16/09). Snippet `d7ec8116…` (48 tài khoản) và `01d7383f…` (21 tài khoản). Đo lại sau khi xoá: danh sách **14 → 12 snippet**, tìm từ `sale` trong SQL Editor ra **0 kết quả**. Hai script này đã chạy xong từ 22/07 nên không mất gì.
+→ **Bài học:** `.gitignore` chỉ chặn đường **git**. Cùng một file dán vào SQL Editor là nằm trên dashboard vĩnh viễn, không luật nào chặn. Script có bí mật thì **xoá snippet ngay sau khi chạy**.
+
+---
+
 ## 2026-08-18 — LỖI UI PHÒNG BAN (2 ô chọn) + BỎ THÔNG BÁO VÔ TRI (v1.49)
 
 Chủ tool: *"những thông báo vô tri - xấu - không có ý nghĩa và kèm theo lỗi UI phòng ban"*.
