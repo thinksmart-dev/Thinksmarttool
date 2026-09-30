@@ -110,6 +110,18 @@ chưa cập nhật xong sau khi repo đổi chủ.**
 4. Chờ tick xanh + nó hiện đúng dòng commit → nút đổi thành **Deploy to Production** → bấm
 5. **Kiểm bằng số đo, đừng tin chữ "Ready"**: `curl -s https://tool.thinksmartinsurance.com/ | grep version-badge`
 
+**CÁCH DEPLOY BẰNG CLI (30/09/2026, đã chạy thật cho `79e0e44` → live v1.51) — khi máy có việc dở chưa commit:**
+☠️ **ĐỪNG `vercel deploy --prod` ngay trong repo** — CLI đẩy FILE TRÊN MÁY, không đẩy commit ⇒ kéo theo mọi thứ
+đang sửa dở (30/09: cả hòm thư Góp ý chưa duyệt) + có thể cả `.env.local`. Xuất bản sạch của đúng commit:
+```
+D=<scratchpad>/deploy-<hash>; mkdir -p "$D/.vercel"
+git -c core.autocrlf=false archive <hash> | tar -x -C "$D"   # thiếu -c ... thì mọi file text thành CRLF
+cp .vercel/project.json "$D/.vercel/"; cd "$D" && vercel deploy --prod --yes
+```
+CLI đang đăng nhập `hadangtien0702-8981` (có quyền project). Kiểm sau deploy: `version-badge` ở 3 trang, md5 file vừa
+sửa so với `git show <hash>:<file> | md5sum`, file không được lên (`/.env.local`, file dở) phải **404**.
+Lần 30/09 quên `-c core.autocrlf=false` ⇒ md5 live lệch; bỏ CR thì khớp từng byte (1.280 CR) — vô hại nhưng làm thước md5 báo sai.
+
 **VIỆC CÒN TREO — sửa gốc:** trong `thinksmarttool-gy6f` → Settings → Git → **Disconnect rồi Connect lại**
 vào `thinksmart-dev/Thinksmarttool` để auto-deploy sống lại. Chưa làm vì cần chủ tool duyệt (đụng cấu hình
 bản live của 77 người).

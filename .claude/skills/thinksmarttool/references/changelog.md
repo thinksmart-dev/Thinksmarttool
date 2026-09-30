@@ -12,6 +12,9 @@ Chủ tool chụp màn hình thẻ "Mức đóng mỗi năm" của mẫu **Allia
 - Sửa đúng 1 cụm trong **cả hai** nơi: `public/templates/Max-Funded Allianz.svg` + `2-Templates/Allianz/Max-Funded Allianz.svg`. Mã băm hai file sau sửa khớp nhau (`07741bd6…`).
 - Kiểm: file Allianz còn 0 `emium Pad`, 2 `emium Paid` (thẻ còn lại vốn đã đúng). 5 mẫu khác không có lỗi này (AIG IUL, NLG IUL ghi đúng "Paid").
 - Đo hình học trên SVG đã render: cụm vẫn là cụm CUỐI của thẻ `<text>`, không đè chữ nào; nằm gọn trong thẻ.
+- **LÊN LIVE 30/09 ~15:50** bằng Vercel CLI từ bản `git archive 79e0e44` sạch (auto-deploy vẫn chết). Đo trên
+  `tool.thinksmartinsurance.com`: 3 trang ra `v1.51` + `30/09/2026`; mẫu Allianz live có 2 `emium Paid`, 0 `Pad`;
+  `/gopy.css`, `/js/gopy.js`, `/.env.local` → 404; `/api/library` → 200. Cách làm ghi ở `deployment.md`.
 - Push **v1.50 → v1.51**, ngày 30/09 ở cả 3 trang. Commit CHỈ gồm: file mẫu + 3 dòng phiên bản + mục này (stage bằng `git hash-object` từ HEAD, không lấy hunk khác).
 - ☠️ **HÒM THƯ GÓP Ý (17/09) CÒN NẰM DỞ trên máy, CHƯA push:** `gopy.css`, `js/gopy.js`, `supabase/gopy.sql`, tab "Góp ý" trong `members.html`/`members.js`, `portal.css?v=91`, `members.js?v=67`, `cache-version.json`. Nó từng tự bump v1.51 (17/09) trên máy — nay v1.51 đã dùng cho lần sửa chính tả, **push Góp ý phải là v1.52**.
 - ☠️ File `.ai` gốc vẫn còn chữ sai: chủ tool xuất lại mẫu từ Illustrator là lỗi quay lại. Báo chủ tool sửa trong `.ai`.
