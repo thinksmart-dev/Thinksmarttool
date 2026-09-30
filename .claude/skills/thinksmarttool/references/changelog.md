@@ -5,6 +5,17 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-09-30 15:41 — v1.51 · SỬA CHÍNH TẢ MẪU ALLIANZ: "Total Premium Pad" → "Paid" (đã push)
+
+Chủ tool chụp màn hình thẻ "Mức đóng mỗi năm" của mẫu **Allianz Max-Funded**: phụ đề ghi `Total Premium Pad`.
+- Chữ bị Illustrator cắt cụm: `…>tal P</tspan>…>r</tspan>…>emium Pad</tspan>` nên grep "Premium Pad" không ra — tìm theo cụm `emium Pa`.
+- Sửa đúng 1 cụm trong **cả hai** nơi: `public/templates/Max-Funded Allianz.svg` + `2-Templates/Allianz/Max-Funded Allianz.svg`. Mã băm hai file sau sửa khớp nhau (`07741bd6…`).
+- Kiểm: file Allianz còn 0 `emium Pad`, 2 `emium Paid` (thẻ còn lại vốn đã đúng). 5 mẫu khác không có lỗi này (AIG IUL, NLG IUL ghi đúng "Paid").
+- Đo hình học trên SVG đã render: cụm vẫn là cụm CUỐI của thẻ `<text>`, không đè chữ nào; nằm gọn trong thẻ.
+- Push **v1.50 → v1.51**, ngày 30/09 ở cả 3 trang. Commit CHỈ gồm: file mẫu + 3 dòng phiên bản + mục này (stage bằng `git hash-object` từ HEAD, không lấy hunk khác).
+- ☠️ **HÒM THƯ GÓP Ý (17/09) CÒN NẰM DỞ trên máy, CHƯA push:** `gopy.css`, `js/gopy.js`, `supabase/gopy.sql`, tab "Góp ý" trong `members.html`/`members.js`, `portal.css?v=91`, `members.js?v=67`, `cache-version.json`. Nó từng tự bump v1.51 (17/09) trên máy — nay v1.51 đã dùng cho lần sửa chính tả, **push Góp ý phải là v1.52**.
+- ☠️ File `.ai` gốc vẫn còn chữ sai: chủ tool xuất lại mẫu từ Illustrator là lỗi quay lại. Báo chủ tool sửa trong `.ai`.
+
 ## 2026-09-16 15:29 — v1.50 · SỬA DROPDOWN HỘP "SỬA TÀI KHOẢN" + GỘP TABS/Ô TÌM MỘT HÀNG
 
 Chủ tool báo hai lỗi ở `/members`, sửa gốc cả hai. **Đã push, v1.49 → v1.50.**
