@@ -5,6 +5,28 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-09 15:50 — v1.52 ĐÃ LÊN LIVE (commit 2e557d7): SMS 34 ảnh + hashtag, sửa nhập tuổi, nút Request, gỡ 3 nhãn menu
+
+**Lời chủ tool:** "push lên đi em". Bốn mục 09/10 bên dưới (13:52, 14:15, 14:56, 15:02, 15:27, 15:34) nay ĐÃ push và ĐÃ live.
+- Commit 2e557d7, 93 file (34 ảnh SMS + 34 ảnh nhỏ + 1 đổi chỗ + 24 file mã/tài liệu). Stage từng đường dẫn, KHÔNG add -A:
+  23 file nháp ở gốc repo (check_*.py, final_database*.csv, get_api_key.py...) vẫn nằm ngoài git.
+- git push: 59d2c6a..2e557d7, ls-remote khớp. Auto-deploy vẫn chết nên deploy bằng CLI từ bản git archive sạch
+  (cách trong deployment.md), project thinksmarttool-gy6f.
+- Đo trên tool.thinksmartinsurance.com: 3 trang ra v1.52 + 09/10/2026; 7 file (tinhtuoi v16, brochure v34, style v121,
+  gopy.js v2, gopy.css v2, main v24, members v68) md5 khớp git từng byte; /.env, /.env.local, /get_api_key.py,
+  /final_database.csv, trang thử → 404; /api/library 200; POST /api/yeu-cau không token → 401;
+  34 ảnh SMS + 34 ảnh nhỏ tải qua live đúng từng byte so với đĩa.
+
+**☠️ CÒN TREO sau lần push này:**
+1. Nút Request CHƯA chạy được trên live: chủ tool chưa chạy supabase/yeucau.sql, Vercel chưa có LARK_WEBHOOK_URL,
+   chưa gửi thử lần nào bằng phiên đăng nhập thật. Mục gopy đang ở nấc super nên chỉ Super Admin thấy nút.
+   Tab "Yêu cầu" ở Members sẽ báo thiếu cột cho tới khi chạy SQL.
+2. Tính tuổi: "hôm nay" theo giờ máy sale hay ngày bên Mỹ, chờ chủ tool quyết.
+3. SMS: 3 ảnh nền đỏ chưa rõ chương trình (2 tấm tạm gắn #ChaMe, 1 tấm chưa có hashtag).
+4. Chưa ai xem các thay đổi này trên trang /tool ĐÃ ĐĂNG NHẬP ở bản live ngoài chủ tool; chưa thử điện thoại thật.
+5. Cũ: nối lại Git cho project Vercel để auto-deploy sống lại; 23 file nháp ở gốc repo chưa vào .gitignore.
+
+---
 ## 2026-10-09 15:34 — NÚT REQUEST: nút tròn góc phải gửi yêu cầu 3 ô + tự báo vào nhóm Lark (CHƯA push, CHƯA nối Lark thật)
 
 **Lời chủ tool:** "làm một nút request nay bên trong đây các bạn cần cái gì sẽ gửi tự động gửi tin nhắn qua Lark cho anh".
