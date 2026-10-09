@@ -5,6 +5,242 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-09 15:34 — NÚT REQUEST: nút tròn góc phải gửi yêu cầu 3 ô + tự báo vào nhóm Lark (CHƯA push, CHƯA nối Lark thật)
+
+**Lời chủ tool:** "làm một nút request nay bên trong đây các bạn cần cái gì sẽ gửi tự động gửi tin nhắn qua Lark cho anh".
+Chốt qua bảng hỏi: vị trí "góc tròn bên phải"; nơi nhận "Nhóm Lark có bot"; form "ô đầu tiên là tiêu đề, nội dung mong
+muốn, nhóm khách hàng muốn gửi tới".
+
+**Dựng tiếp trên hòm thư góp ý 17/09 (chưa từng push), không làm tính năng mới song song.**
+- public/js/gopy.js v1→2: hộp 3 ô, cả ba bắt buộc; gửi qua POST /api/yeu-cau kèm phiên đăng nhập (không còn ghi thẳng bảng).
+  Lỗi thì giữ chữ, gửi xong mới xoá, không tự đóng hộp, Esc giữ chữ, Enter ở ô tiêu đề chỉ sang ô nội dung.
+- public/gopy.css v1→2: nhãn trên ô, hộp bị chặn chiều cao (màn thấp thì phần thân cuộn), điện thoại ô 16px/44px.
+- server.js: POST /api/yeu-cau. Kiểm token → hồ sơ active → nấc phát hành mục gopy → 3 ô + độ dài → giới hạn
+  5 yêu cầu / 10 phút / người (đếm trong bảng) → lưu gop_y bằng service_role → gửi Lark → ghi lark_ok.
+  Lark hỏng KHÔNG làm mất yêu cầu. Chữ sale gõ chỉ vào thẻ plain_text. Link bot chỉ nhận open.larksuite.com và
+  open.feishu.cn. Chờ Lark tối đa 4 giây. Thẻ bị từ chối thì gửi lại dạng chữ trơn.
+- supabase/yeucau.sql (MỚI, chạy SAU gopy.sql): thêm cột tieu_de, nhom_khach, lark_ok + constraint + index; GỠ policy
+  cho trình duyệt tự insert (mọi yêu cầu phải qua máy chủ để có giới hạn và báo Lark).
+- Trang Members: tab "Góp ý" đổi thành "Yêu cầu", hiện tiêu đề + nhóm khách hàng + nhãn "Chưa báo được Lark";
+  mục trong tab Khoá mục đổi tên "Request / Yêu cầu" (mã mục vẫn là gopy). members.js v67→68, portal.css v91→92.
+- .env.example: thêm LARK_WEBHOOK_URL, LARK_WEBHOOK_SECRET (tuỳ chọn, khi bot bật chữ ký).
+- scripts/kiem-lark.js (MỚI): máy chủ Lark giả, 29/29 đạt (thẻ nhận, thẻ bị từ chối, từ chối hết, không trả lời
+  dừng sau 4.004 ms, link lạ không gửi, chữ ký khớp bản Python).
+
+**Kiểm chứng đã làm:** /api/yeu-cau không token → 401, token giả → 401, bảng vẫn 3 dòng. Giao diện đo trên trang thử có
+đăng nhập giả + máy chủ giả: nút Gửi chỉ bật khi đủ 3 ô (ô chỉ có dấu cách không tính); bấm hai lần chỉ gọi 1 lần;
+lỗi 429 hiện đúng câu và giữ chữ; gửi xong xoá 3 ô, hộp vẫn mở; 375px lề 14/14 không tràn; màn cao 420px hộp
+nằm trọn, nút Gửi trong tầm nhìn; nấc super thì sale thường không thấy nút.
+
+**☠️ CHƯA KIỂM, phải làm trước khi mở cho sale:**
+1. Chủ tool chạy supabase/yeucau.sql (bảng hiện chưa có 3 cột mới, bấm Gửi sẽ báo "cần chạy yeucau.sql").
+2. Tạo nhóm Lark + Custom Bot, dán link vào .env (máy) và Vercel (LARK_WEBHOOK_URL). CHƯA từng gửi một tin nào tới
+   Lark thật: dạng thẻ có được Lark nhận không thì chưa biết, nhánh chữ trơn là đường lùi.
+3. Gửi thử một yêu cầu thật khi đã đăng nhập (đường có token thật chưa chạy lần nào).
+4. Mục gopy đang ở nấc super (chỉ Super Admin thấy nút). Mở cho sale ở Members → Khoá mục.
+5. Deploy: máy chủ Vercel phải có LARK_WEBHOOK_URL; push tính năng này phải kèm gopy.css, js/gopy.js, 2 file SQL.
+
+---
+## 2026-10-09 15:27 — TÍNH TUỔI: sửa 8 chỗ ở khâu GÕ và HIỂN THỊ sau bài kiểm 100 ca gõ thật (CHƯA push)
+
+**Bối cảnh.** Chủ tool: "dùng sonnet kiểm tra cho anh 100 trường hợp nhập tuổi ... anh muốn biết có thể sai ở đâu".
+Một agent Sonnet soạn 100 ca, chạy trong trình duyệt thật (Playwright, gõ từng phím, dán thật), đối chiếu với một
+bộ tính viết lại bằng Python. Kết quả: CÔNG THỨC không sai (440.874 cặp ngày sinh/ngày tính, 0 lệch), chỗ sai nằm
+ở khâu gõ và hiển thị: 24/105 ca có vấn đề. Chủ tool: "sửa từ 1 đến 8 đi em".
+
+**Đã sửa (public/js/tinhtuoi.js v15→16, public/style.css v120→121). KHÔNG đụng 6 hàm tính.**
+1. Ô còn ngày khách trước thì gõ/dán ngày mới không vào: bỏ maxlength; vào ô hoặc tính xong là bôi đen hết;
+   dán cả một ngày thì thay hết ô dù con trỏ ở đâu.
+2. Sửa ngày mà chưa bấm Tính thì kết quả cũ vẫn bày: nay ngày trong ô khác ngày của kết quả là cất kết quả
+   (biến ttDangHien giữ "kết quả đang bày là của ngày nào, tính hôm nào").
+3. 5/22/1990 (không số 0 đầu) bị biến thành 52/21/990: hàm mới ttChuanHoaGo tôn trọng dấu ngăn người gõ
+   (/ - . dấu cách), thêm số 0 cho tháng/ngày một chữ số. Năm đứng đầu (1990-05-22) được đổi vì chỉ có một cách hiểu.
+   Ngày-trước-tháng-sau (25/12/1990) VẪN bị từ chối như chủ tool chốt.
+4. Dán có dấu cách / chữ ở đầu bị cắt đuôi: hết, vì không còn maxlength.
+5. Sửa một số ở giữa thì các số sau dồn lệch: đang sửa ở giữa thì không dựng lại chuỗi, giữ con trỏ; chỉ dựng
+   lại khi khung hai dấu "/" bị vỡ (xoá mất một dấu "/").
+6. Ngày đọc được cả hai chiều (132/365 ngày): dòng đọc lại lên 15px đậm, riêng những ngày đó có nền vàng
+   (class can-xem). Tool vẫn KHÔNG thể biết sale gõ nhầm; đây chỉ là làm chốt chặn dễ thấy hơn.
+7. Tab để qua đêm: ttKiemQuaNgay tính và vẽ lại khi quay lại tab, cửa sổ được chọn lại, hoặc mỗi phút; không
+   ghi thêm lịch sử hay đo lường.
+8. Việc nhỏ: giữ Enter không còn ghi nhiều dòng (bỏ qua e.repeat); lịch sử lưu thêm ts, dòng khác ngày hiện
+   NGÀY thay cho giờ; năm ngoài 1900–2100 có câu báo riêng; lịch sử hỏng ([null]) không còn làm công cụ đứng;
+   gõ thừa chữ số (kẹt phím 19990) có cảnh báo; tháng sai (52, 25) báo ngay từ hai chữ số đầu.
+
+**Kiểm chứng.**
+- Chạy lại đúng 105 ca cũ trong trình duyệt thật sau khi sửa: ca có vấn đề 24 → 9, hồi quy 0. Lượt đầu sau sửa
+  bắt được 1 hồi quy do chính bản sửa (xoá lùi đúng dấu "/" ra 0522/1990), đã sửa rồi chạy lại.
+- 9 ca còn lại, KHÔNG phải lỗi còn sót: 5 ca gõ nhầm ngày/tháng mà cả hai chiều hợp lệ (nay có nền vàng); 1 ca
+  kẹt phím (nay có cảnh báo); 1 ca sửa ngày chưa bấm Tính (nay hiện dấu gạch, đúng ý); 1 ca năm 1899 (giới hạn
+  có chủ ý, câu báo đã đúng); 1 ca múi giờ (CHỜ chủ tool quyết, xem dưới).
+- 14 phép thử thêm trong trình duyệt: qua đêm 36/36 "Còn 1 ngày" → 36/37, ô cảnh báo ẩn, lịch sử vẫn 1 dòng;
+  giữ Enter 6 lần → 1 dòng; lịch sử "18 thg 8" cho dòng cũ; dán nối đuôi → thay hết ô; sửa tháng ở giữa → 06/22/1990.
+- node scripts/kiem-go-ngay.js (MỚI): 61 ca gõ/dán, 61 đạt; đối chứng bản cũ sai 13/23 ca dán.
+- node scripts/kiem-tinh-tuoi.js: 102.347 phép tính, 0 lỗi. kiem-cache-version đạt.
+- CHƯA kiểm: điện thoại thật; hộp báo lỗi thật của app (trang thử dùng hộp giả); trang /tool đã đăng nhập.
+
+**☠️ CHỜ CHỦ TOOL QUYẾT: "hôm nay" tính theo đồng hồ nào.** Tool lấy ngày trên máy sale. Sale ở Việt Nam đi trước
+Mỹ gần một ngày nên đúng ngày ranh giới tool báo tuổi mới sớm hơn lịch Mỹ một ngày (ca thử: sinh 02/09/1990, máy
+Việt Nam 08:00 ngày 08/10 ra 37, theo ngày New York 08/09 là 36). Chưa sửa gì ở điểm này.
+
+**Bộ chạy thử** (ngoài repo, thư mục nháp của phiên 09/10): harness.html + serve.js + cases.json + oracle.py. Mất khi
+dọn Temp; muốn giữ thì chép vào repo.
+
+---
+## 2026-10-09 15:02 — Cây điều hướng: gỡ 3 nhãn (UPDATED của Proposal, NEW của Application Form và Quote) (CHƯA push)
+
+**Lời chủ tool (kèm ảnh khoanh 3 mục):** "ẩn cho anh 3 cái update và new nha em". Hai mục KHÔNG khoanh là SMS và
+Age vẫn giữ nhãn NEW.
+- public/js/proposal.js v47→48: bỏ tham số moi: updated khi gọi makeCollapsibleFolder.
+- public/js/main.js v23→24: bỏ tham số true cuối lời gọi renderLibrarySection cho Application Form.
+- public/js/tinhphi.js v18→19: bỏ thẻ span nav-new cạnh nhãn Quote.
+- Cơ chế nhãn trong core.js (makeCollapsibleFolder nhận moi) và CSS .nav-new / .nav-upd GIỮ NGUYÊN để gắn lại sau.
+- Kiểm: 3 file máy chủ đang phục vụ không còn nhãn; kiem-cache-version đạt. CHƯA nhìn trên màn hình đã đăng nhập.
+
+---
+## 2026-10-09 14:56 — SMS: thêm 22 ảnh từ Drive (tổng 34), hàng hashtag vuốt ngang trên điện thoại (CHƯA push)
+
+**Lời chủ tool:** "update thêm cho anh các tấm ảnh ở đây nha em" + link thư mục Drive 1qkSyd4m6oXeI5GpBRThuWQeti245lNJA.
+
+**Đã làm**
+- Tải 22 PNG (102,4 MB; đếm bằng hai đường đều ra 22, dung lượng từng file khớp Drive) → JPEG q90 4:4:4, 16,5 MB,
+  lệch RMS 1,45 đến 2,62 / 255. Một tấm 3483px thu về 2000px cho bằng các tấm khác; ba tấm gốc 1254px giữ nguyên.
+- Tên file = chữ in trên hình + hashtag. Số tiền, tỉ lệ chép nguyên văn từ hình ($54,000 · $86,000 · 13.44% ·
+  $12,000 - $50,000 · $5 · $20.000). Dấu "?" bỏ vì Windows không cho đặt trong tên file.
+- Hashtag: #IUL 19 · #TermLife 6 · #EmBeTrieuPhu 4 · #EBTP 4 · #ThoNail 4 · #MaxFundedIUL 3 · #ChaMe 2.
+  Sách Em Bé Triệu Phú mang CẢ HAI tag #EmBeTrieuPhu và #EBTP (trên hình dùng cả hai cách gọi).
+  Ba tấm Max-Funded IUL KHÔNG mang #IUL: gõ "iul" vẫn ra (22 ảnh) nhưng nút #IUL chỉ đếm 19.
+- ☠️ CHỜ CHỦ TOOL TRẢ LỜI: 3 tấm nền đỏ không in tên chương trình nào ("Điều con cái lo lắng nhất là gì",
+  "Bạn muốn báo hiếu cha mẹ" đang tạm gắn #ChaMe; "Không chỉ là hiện tại mà cần tính đến cả tương lai" chưa có
+  hashtag). KHÔNG tự đoán chương trình.
+- public/js/brochure.js v33→34: ô tìm coi dấu gạch nối như dấu cách ("max-funded" trước ra 0, nay ra 3); bấm
+  hashtag trên thẻ ảnh thì nút đang chọn trên thanh tự kéo vào tầm nhìn (tự tính scrollLeft).
+- public/style.css v119→120: màn ≤ 640px hàng hashtag thành MỘT hàng vuốt ngang.
+
+**Vì sao phải sửa CSS (đo trên lưới thật, 34 ảnh / 8 nút hashtag, khổ 375x812):** để rớt dòng thì thanh dính
+cao 297px = 37% màn hình (4 hàng nút). Sau sửa: 147px = 18%, 1 hàng nút cao 44px, không tràn ngang. Với 12 ảnh /
+4 nút hôm trước lỗi này không lộ. Máy tính 1280px: 6 cột, thanh 97px, không đổi.
+
+**Kiểm chứng:** script đọc /api/library + tải từng file qua /api/download: 34/34 ảnh gốc và 34/34 ảnh nhỏ đúng
+từng byte so với đĩa, 0 ô thiếu ảnh nhỏ. Tìm bằng hàm thật trong brochure.js: iul 22 · term life 6 · max fund /
+maxfund / max funded / max-funded / max funded iul 3 · ebtp 4 · em bé triệu phú 4 · cha me 2 · 13.44 1 · 86,000 1.
+Biết trước mà chưa sửa: tìm theo chuỗi con nên "bao hieu" ra thêm tấm "bồi thường bao nhiêu" (2 thay vì 1).
+node scripts/kiem-cache-version.js đạt. Trang thử tạm public/_qc-sms.html đã xoá.
+
+**Thêm ảnh lần sau:** thả file vào SMS/ đặt tên "Tiêu đề #Tag.jpg" → python scripts/tao-anh-nho-sms.py → xong.
+
+---
+## 2026-10-09 14:15 — TÍNH TUỔI: chỉ còn kiểu Mỹ MM/DD/YYYY + ô "Sắp tăng tuổi" chỉ hiện khi còn ≤ 60 ngày (CHƯA push)
+
+**Lời chủ tool (chuyển từ bên dùng):** "chỉ lấy chuẩn cách nhập Tháng/Ngày/Năm theo Mỹ ... để các bạn bắt buộc
+run quote phải để ngày theo định dạng Mỹ (MM/DD/YYYY), không cần thêm định dạng ngày Việt Nam" và "nếu KH đã
+tăng tuổi rồi thì thôi, không cần thông báo, còn khi nào tầm 60 ngày tức 2 tháng sẽ tăng, hãy cho ô này thông
+báo rõ nét hơn".
+
+**Đổi gì** (public/js/tinhtuoi.js v13→14, public/style.css v118→119). CÔNG THỨC TÍNH TUỔI KHÔNG ĐỤNG.
+- Bỏ hai nút "Tháng / Ngày" và "Ngày / Tháng" + ttThuTu / ttDatThuTu / ttDocNgayThongMinh. Thay bằng dòng chữ
+  "Kiểu Mỹ: Tháng / Ngày / Năm" và hàm ttDocNgayMy (đọc đúng MDY, KHÔNG tự đảo). Lựa chọn DMY người dùng từng
+  lưu ở localStorage tst-tinhtuoi-thutu bị bỏ qua.
+- Gõ kiểu Việt (25/12/1990): dòng dưới ô báo "Không có tháng 25. Gõ tháng trước, ngày sau.", bấm Tính thì hộp
+  báo nói rõ và gợi ý cách gõ lại 12/25/1990. Trước đây tool tự hiểu giúp.
+- Ô thứ ba đổi từ "Ngày tăng tuổi" (luôn hiện, kể cả "Còn 365 ngày") thành "Sắp tăng tuổi": ẩn khi còn > 60
+  ngày (TT_BAO_TRUOC), hiện khi ≤ 60 với nền cam nhạt + viền cam 2px + chấm báo, chữ to "Còn N ngày", dòng dưới
+  "Lên X tuổi từ MM/DD/YYYY". Còn ≤ 30 ngày (TT_GAN_KE) thì tô đặc. Tuổi mới = tuổi bảo hiểm hiện tại + 1.
+- Hàng kết quả: 2 cột khi không có ô đó, 3 cột khi có (.co-sap-tang). Thêm .tt-o[hidden]{display:none} vì .tt-o
+  có display:flex nên thuộc tính hidden không tự ẩn được.
+- Bản ghi đo lường giữ đủ 6 trường; kieu_go nay luôn là MDY.
+
+**Kiểm chứng** (trang thử tạm nạp tinhtuoi.js + style.css thật, ngày thật 09/10/2026, đã xoá trang thử):
+- node scripts/kiem-tinh-tuoi.js: 102.347 phép tính, 0 lỗi (y như trước khi sửa).
+- 04/01/1997 → 29 / BH 30, ô ẩn · 06/08/1990 (còn 61 ngày) → ẩn · 06/07/1990 → "Còn 60 ngày, Lên 37 tuổi từ
+  12/08/2026" · 05/22/1990 → còn 45, cam nhạt · 04/28/1990 → còn 20, tô đặc · 04/09/1990 → "Còn 1 ngày" ·
+  04/08/1990 (vừa lên tuổi hôm nay) → 36 / BH 37, ô ẩn.
+- 05/06/1979 đọc ra "6 tháng 5" dù localStorage đang lưu DMY: lựa chọn cũ không còn tác dụng.
+- Bố cục: 1400px → 2 ô 304+304 hoặc 3 ô 198×3, một hàng, kín hàng, ô nào cũng cao bằng nhau; 1000px → 2 ô trên +
+  ô cảnh báo trải hết hàng dưới; 375px → xếp dọc; không tràn ngang ở cả ba. Chữ không bị cắt.
+- Tương phản ô cảnh báo: nhãn 5,04 · số to 7,00 · dòng ngày 5,04 (cam nhạt); 5,63 cả ba (tô đặc).
+
+**Sửa thêm 14:30 sau khi chủ tool xem bản chạy thật** (tinhtuoi.js v14→15)
+- Chủ tool khoanh nhãn: "bỏ từ kiểu mỹ". Nhãn còn "Tháng / Ngày / Năm"; hộp báo lỗi đổi thành "Ô này chỉ nhận
+  dạng MM/DD/YYYY".
+- ☠️ ĐÍNH CHÍNH số đo ở mục "Kiểm chứng" bên dưới: dòng "gõ sai thì khối kết quả ẩn" là SAI. Thước của em đọc
+  thuộc tính kq.hidden trước rồi mới đọc display, nên báo ẩn trong khi mắt vẫn thấy. Sự thật (có từ trước, cả trên
+  bản live): .tt-ketqua có display:grid nên hidden không ẩn được, gõ ngày sai thì hai ô tuổi vẫn bày số của
+  khách TRƯỚC. Lộ ra nhờ ảnh chụp của chủ tool (hai ô có dấu gạch ngay lúc chưa tính).
+  Đã sửa bằng ttXoaKetQua(): ngày sai hoặc ngày ở tương lai thì hai ô về dấu gạch, cất ô cảnh báo, xoá câu giải
+  thích. KHÔNG ẩn hẳn khối (người dùng đã quen thấy hai ô gạch từ lúc mở). Đo lại bằng display thật + chữ trong ô:
+  tính 05/22/1990 (36/36, còn 45 ngày) → gõ 25/12/1990 → —/—, ô cảnh báo ẩn → tính 04/28/1990 → 36/36, còn 20 ngày
+  → 12/31/2099 → —/—.
+- Bài học thước đo: kiểm "có ẩn không" thì đọc getComputedStyle(el).display, không đọc el.hidden.
+
+**Bẫy đã vấp:** luật .tt-ketqua.co-sap-tang (2 class) mạnh hơn luật màn hẹp .tt-ketqua sẵn có trong @media,
+nên bản đầu ép 3 cột cả trên điện thoại. Đo ở pane hẹp mới lộ (2 ô xếp dọc mà 3 ô lại xếp ngang). Đã ghi cả
+hai selector vào hai khối @media. Thêm biến thể cho một luật thì dò mọi @media đang ghi đè luật gốc.
+
+---
+
+## 2026-10-09 13:52 — SMS: LƯỚI ẢNH NHỎ + HASHTAG + Ô TÌM, thêm 8 ảnh từ Drive (CHƯA push, chưa bump badge)
+
+**Bối cảnh.** Anh Kevin (sale) nhắn: "Phần sales kit sms này, a muốn làm nhỏ hình lại, mỗi hình có hash tag
+của chương trình (IUL, TERM, MAXFUND...) để khi người dùng search có thể dễ tìm ra hình muốn gửi". Chủ tool
+chốt qua bảng hỏi: hashtag "đặt tên theo hình" (nằm trong tên file), ảnh dài "em tự cắt ra thành nhiều hình con".
+Giữa chừng anh đưa thêm thư mục Drive 8 ảnh: "down về và tải lên cho anh".
+
+**Trước:** thư mục SMS/ có 1 ảnh 1080x7082; bấm mục SMS là mở ảnh to cuộn dọc; không có hashtag, không có ô tìm.
+**Sau:** 12 ảnh xếp lưới ô vuông (5 cột ở khung 1100px, 2 cột ở 375px), mỗi ô có tên + hashtag + nút Tải về;
+thanh trên có ô tìm + hàng hashtag bấm để lọc; bấm ảnh nhỏ thì ảnh to thay chỗ lưới, có nút "Quay lại lưới".
+
+**Dữ liệu (thư mục SMS/)**
+- Ảnh dài cắt thành 4 tấm ở các hàng 1920 / 3839 / 5460 (dò bằng độ lệch giữa hai hàng pixel liền nhau, bỏ hàng
+  bị trộn màu ở đường nối + 2 hàng trắng cuối). JPEG q92 4:4:4, lệch so với gốc tối đa RMS 1,57/255.
+  Bản dài gốc KHÔNG xoá: nằm ở SMS/_goc/ (md5 khớp bản trong git).
+- 8 ảnh Drive (thư mục 1RClKPYTzlQz56jsv3YGqZwuwzbkTnYbz, chủ: dreamtalentmarketing): PNG 2000x2000, 36,0 MB.
+  Tải bằng link công khai, 8/8 khớp số byte với Drive. Đổi sang JPEG q90 cùng kích thước: 6,5 MB, RMS tối đa
+  2,03/255. Bản PNG gốc vẫn nằm trên Drive, không đưa vào repo.
+- Hashtag chương trình lấy ĐÚNG theo chữ in trên bìa sách trong hình: 4 tấm TERM LIFE, 4 tấm IUL SECRETS. Không
+  đoán thêm tag đối tượng cho 8 tấm này. Một tên file Drive bị cụt ("...bên gia.png") đã viết lại theo chữ trên
+  hình ("...bên gia đình").
+- Quy ước tên: "Tiêu đề #Tag1 #Tag2.jpg". Tag không có dấu cách (#TermLife, #ThoNail). Thêm ảnh = thả file đặt
+  tên đúng kiểu vào SMS/, chạy python scripts/tao-anh-nho-sms.py, rồi push.
+
+**Mã**
+- public/js/brochure.js (v32→33): tachTagSms, smsBoDau, khopSms, danhSachSms (bỏ qua thư mục con bắt đầu bằng
+  "_", gắn ảnh nhỏ từ nhóm _thumb), showSmsGallery thay showTallPreview (hàm cũ đã gỡ, không còn ai gọi).
+- public/style.css (v117→118): khối .sms-* ngay sau .tall-doc-img.
+- public/js/main.js (v22→23) + server.js: chỉ sửa ghi chú trỏ tên hàm.
+- scripts/tao-anh-nho-sms.py (mới): sinh SMS/_thumb/<cùng tên>.jpg rộng 480px; chạy lại chỉ làm tấm thiếu/cũ
+  và dọn ảnh nhỏ mồ côi. 12 ảnh nhỏ = 764 KB so với 7,9 MB ảnh gốc.
+
+**Kiểm chứng** (trang thử tạm public/_qc-sms.html nạp brochure.js + style.css + /api/library THẬT, đã xoá):
+- API: 25/25 file SMS (12 gốc + 12 nhỏ + 1 bản dài) tải về đúng số byte, kể cả tên có dấu # và dấu tiếng Việt.
+- Lưới 1100px: 12 ô, 5 cột, ô nào cũng 194x306, ảnh vuông 176x176, 12/12 ô dùng ảnh nhỏ 480px, 0 tên bị cắt.
+- Tìm: iul→8 · term→4 · "term life"→4 · termlife→4 · "tho nail"→4 · "thợ nail"→4 · thonail→4 · huu→1 ·
+  "gia dinh"→2 · benh→1 · maxfund→0 (hiện dòng "Không có ảnh nào khớp") · chip TermLife + gõ "benh"→1.
+- Ảnh to: lưới ẩn, ảnh gốc 1080x1619 hiện rộng 458px, tiêu điểm vào nút Quay lại; Esc và nút Quay lại đều trả
+  về lưới, đúng chỗ cuộn cũ, tiêu điểm về đúng ô vừa bấm. Nút tải khớp bộ ghi lượt tải (#library-view a[download]).
+- Màn 375px (đo trong khung con, không dùng giả lập của pane): 2 cột, không tràn ngang, ô tìm 44px chữ 16px,
+  chip 44px, 0 tên bị cắt.
+- node scripts/kiem-cache-version.js: khớp 23 file.
+- CHƯA chạy trên trang /tool thật (cần đăng nhập). CHƯA lên live.
+
+**Ba cái bẫy đã vấp trong buổi**
+1. Tag #TERM làm gõ "term life" ra 0 ảnh trong khi hình in rõ TERM LIFE. Đổi thành #TermLife: so khớp có nhánh
+   "viết liền" nên term / term life / termlife đều ra. Đặt tag theo chữ người dùng sẽ GÕ, không theo chữ viết tắt.
+2. Ảnh to không làm được bằng lớp phủ position: fixed: .library-view có z-index nên là một tầng xếp riêng, lớp
+   phủ bên trong không nổi lên trên thanh bên (z 200) và thanh đầu trang (z 100). Đưa lớp phủ ra ngoài
+   #library-view thì mất việc ghi lượt tải. Cách đang dùng: ảnh to THAY CHỖ lưới ngay trong khung cuộn.
+3. Hai lần thước sai chứ không phải sản phẩm sai: (a) curl trong Git Bash mã hoá sai tên file có dấu → API trả
+   403; gọi bằng fetch + encodeURIComponent thì 25/25 đúng. (b) Chip đặt 44px đo ra 42,02px: hiệu ứng
+   tst-canvas-in bị đứng ở khung đầu (thu 95,5%) vì pane ẩn; getAnimations().forEach(a => a.finish()) rồi đo ra 44.
+   Dấu hiệu: mọi kích thước cùng hụt một tỉ lệ.
+
+**Còn treo**
+- Anh xem ở localhost:8000 rồi chốt có đưa lên live không. Lên live phải commit riêng đúng các file SMS + 5 file
+  mã ở trên: thư mục làm việc còn tính năng "góp ý" dở từ 17/09 và 23 file nháp ở gốc repo chưa được gitignore.
+- Chưa có ảnh MaxFunded nào. Tag đối tượng cho 8 ảnh mới (gia đình, hưu trí...) để anh/anh Kevin quyết.
+
+---
+
 ## 2026-09-30 15:41 — v1.51 · SỬA CHÍNH TẢ MẪU ALLIANZ: "Total Premium Pad" → "Paid" (đã push)
 
 Chủ tool chụp màn hình thẻ "Mức đóng mỗi năm" của mẫu **Allianz Max-Funded**: phụ đề ghi `Total Premium Pad`.

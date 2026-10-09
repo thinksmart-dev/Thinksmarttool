@@ -1010,6 +1010,14 @@
     $('tab-members').addEventListener('click', function () { doiTab('members'); });
     $('tab-usage').addEventListener('click', function () { doiTab('usage'); });
     $('tab-khoa').addEventListener('click', function () { doiTab('khoa'); });
+    // Tab "Góp ý" CHỈ Super Admin — chủ tool chốt 17/09/2026: đây là thư sale gửi
+    // riêng cho anh, 11 Admin (quản lý trực tiếp của họ) không đọc. RLS ở
+    // supabase/gopy.sql mới là lớp chặn thật; ẩn tab chỉ để Admin không thấy một
+    // cánh cửa họ không được mở.
+    if (me.role === 'super_admin') {
+      $('tab-gopy').style.display = '';
+      $('tab-gopy').addEventListener('click', function () { doiTab('gopy'); });
+    }
     $('khoa-list').addEventListener('click', function (e) {
       const nacNut = e.target.closest('[data-nac]');
       if (nacNut) { doiNac(nacNut.getAttribute('data-nac-muc'), nacNut.getAttribute('data-nac')); return; }
@@ -1082,7 +1090,8 @@
   const TABS = [
     { khoa: 'members', nut: 'tab-members', panel: 'page-content' },
     { khoa: 'usage',   nut: 'tab-usage',   panel: 'tracking-content' },
-    { khoa: 'khoa',    nut: 'tab-khoa',    panel: 'khoa-content' }
+    { khoa: 'khoa',    nut: 'tab-khoa',    panel: 'khoa-content' },
+    { khoa: 'gopy',    nut: 'tab-gopy',    panel: 'gopy-content' }
   ];
   function doiTab(which) {
     TABS.forEach(function (t) {
@@ -1097,6 +1106,7 @@
     const oHit = $('mem-hit'); if (oHit) oHit.style.display = which === 'members' ? '' : 'none';
     if (which === 'usage' && !usageLoaded) { usageLoaded = true; taiDoLuong(); }
     if (which === 'khoa') taiKhoaMuc();
+    if (which === 'gopy') taiGopY();
   }
 
   // ---- KHOÁ MỤC (10/08/2026) — chỉ Super Admin --------------------------------
@@ -1112,7 +1122,11 @@
     { ma: 'compare',  ten: 'Compare / So sánh quyền lợi', mo: 'Bảng so sánh 16 hãng' },
     { ma: 'sms',      ten: 'SMS / Tin nhắn mẫu',         mo: 'Ảnh tin nhắn mẫu sale gửi khách' },
     { ma: 'tinhtuoi', ten: 'Age / Tính tuổi',   mo: 'Nhập ngày sinh → tuổi thật + tuổi báo giá' },
-    { ma: 'tinhphi',  ten: 'Quote / Tính phí',  mo: 'Tra phí Term Life theo tuổi / mệnh giá / hạng' }
+    { ma: 'tinhphi',  ten: 'Quote / Tính phí',  mo: 'Tra phí Term Life theo tuổi / mệnh giá / hạng' },
+    // Không phải mục trong cây Công cụ mà là NÚT TRÒN nổi ở mọi trang. Vẫn để ở đây
+    // vì dùng chung bảng `khoa_muc`: dải 3 nấc là đường duy nhất để mở dần cho
+    // Admin rồi 77 sale mà không phải sửa code + push.
+    { ma: 'gopy',     ten: 'Request / Yêu cầu', mo: 'Nút tròn góc dưới phải, sale gửi yêu cầu, tự báo vào Lark' }
   ];
 
   // NẤC PHÁT HÀNH (10/08/2026) — luật "tính năng mới build dưới quyền super admin"
@@ -1142,6 +1156,90 @@
     khoaRows = {};
     (data || []).forEach(function (r) { khoaRows[r.muc] = r; });
     veKhoaMuc();
+  }
+
+  // ---- HÒM THƯ GÓP Ý (17/09/2026) — CHỈ Super Admin -------------------------
+  // Sale gửi bằng nút tròn nổi (gopy.css + js/gopy.js). Bảng + RLS ở supabase/gopy.sql.
+  // ☠️ Tab này KHÔNG dành cho Admin (chủ tool chốt 17/09/2026). RLS chặn thật ở tầng
+  // CSDL — kể cả ai đó gọi thẳng API cũng không đọc được.
+  let gopYRows = [];
+
+  function gioPhut(s) {
+    const d = new Date(s);
+    const hai = function (n) { return String(n).padStart(2, '0'); };
+    return hai(d.getDate()) + '/' + hai(d.getMonth() + 1) + '/' + d.getFullYear() +
+           ' · ' + hai(d.getHours()) + ':' + hai(d.getMinutes());
+  }
+
+  async function taiGopY() {
+    const bao = $('gopy-msg');
+    // Lấy kèm hồ sơ người gửi qua khoá ngoại user_id → profiles(id)
+    const { data, error } = await sb
+      .from('gop_y')
+      .select('id, tieu_de, noi_dung, nhom_khach, lark_ok, trang, da_doc, at, profiles(full_name, email, department)')
+      .order('at', { ascending: false })
+      .limit(300);
+
+    if (error) {
+      bao.style.display = '';
+      // Phân biệt "chưa dựng bảng" với lỗi khác — hai thứ này cần hai hành động khác nhau
+      bao.textContent = /does not exist|schema cache/i.test(error.message || '')
+        ? "Bảng 'gop_y' chưa có hoặc thiếu cột mới: mở Supabase → SQL Editor, chạy supabase/gopy.sql rồi supabase/yeucau.sql."
+        : error.message;
+      $('gopy-ds').innerHTML = '';
+      return;
+    }
+    bao.style.display = 'none';
+    gopYRows = data || [];
+    veGopY();
+  }
+
+  function veGopY() {
+    const hop = $('gopy-ds');
+    if (!gopYRows.length) {
+      hop.innerHTML = '<div class="gopy-trong">Chưa có yêu cầu nào.</div>';
+      return;
+    }
+    // Chưa đọc lên trước, trong mỗi nhóm thì mới nhất trước (đã order at desc từ server)
+    const sapXep = gopYRows.slice().sort(function (a, b) {
+      if (a.da_doc !== b.da_doc) return a.da_doc ? 1 : -1;
+      return 0;
+    });
+    const chuaDoc = gopYRows.filter(function (r) { return !r.da_doc; }).length;
+
+    hop.innerHTML =
+      '<div class="gopy-tom">' + (chuaDoc
+        ? '<b>' + chuaDoc + '</b> yêu cầu chưa đọc · tổng ' + gopYRows.length
+        : 'Đã đọc hết · tổng ' + gopYRows.length) + '</div>' +
+      sapXep.map(function (r) {
+        const p = r.profiles || {};
+        const ten = p.full_name || p.email || 'Không rõ';
+        const phong = (p.department || '').trim();
+        return '<div class="gopy-item' + (r.da_doc ? ' da-doc' : '') + '">' +
+          '<div class="gopy-item-dau">' +
+            '<span class="gopy-ten">' + esc(ten) + '</span>' +
+            (phong ? '<span class="gopy-phong">' + esc(phong) + '</span>' : '') +
+            '<span class="gopy-luc">' + gioPhut(r.at) + (r.trang ? ' · ' + esc(r.trang) : '') + '</span>' +
+            // lark_ok === false: yêu cầu ĐÃ LƯU nhưng tin Lark không tới (xem log máy chủ)
+            (r.lark_ok === false ? '<span class="gopy-lark-hong">Chưa báo được Lark</span>' : '') +
+            (r.da_doc ? '' : '<button class="btn btn-secondary btn-sm gopy-doc" data-id="' + r.id + '">Đánh dấu đã đọc</button>') +
+          '</div>' +
+          // Ba ô của nút Request (09/10/2026). Dòng góp ý cũ (17/09) không có tiêu đề và
+          // nhóm khách hàng nên hai phần đó chỉ vẽ khi có.
+          (r.tieu_de ? '<div class="gopy-tieude">' + esc(r.tieu_de) + '</div>' : '') +
+          (r.nhom_khach ? '<div class="gopy-nhomkhach">Nhóm khách hàng: <b>' + esc(r.nhom_khach) + '</b></div>' : '') +
+          '<div class="gopy-noidung">' + esc(r.noi_dung) + '</div>' +
+        '</div>';
+      }).join('');
+  }
+
+  async function danhDauDaDoc(id) {
+    const { error } = await sb.from('gop_y').update({ da_doc: true }).eq('id', id);
+    if (error) { await showAppAlert(error.message, { title: 'Không lưu được', tone: 'danger' }); return; }
+    // ☠️ ĐỌC LẠI từ máy chủ thay vì tự sửa mảng trong bộ nhớ: UPDATE khớp 0 dòng
+    // (RLS chặn) vẫn trả về "không lỗi" — tự sửa ở client là vẽ ra một sự thật
+    // không có trên CSDL (bài học 31/07 với `presence`).
+    await taiGopY();
   }
 
   // MỘT MỤC = MỘT HÀNG (chủ tool 10/08/2026: "làm gọn gàng lại, mỗi 1 phần là 1 hàng").
@@ -2040,6 +2138,11 @@
     // sau mỗi lần vẽ nên gắn trực tiếp vào nút là mất handler).
     $('page-content').addEventListener('click', onPagerClick);
     $('bulk-bar').addEventListener('click', onBulkClick);
+    // Bắt ở cấp khung vì danh sách góp ý được vẽ lại sau mỗi lần tải
+    $('gopy-ds').addEventListener('click', function (e) {
+      const nut = e.target.closest('.gopy-doc');
+      if (nut) danhDauDaDoc(Number(nut.dataset.id));
+    });
     $('bulk-clear').addEventListener('click', function () {
       dangChon.clear();
       document.querySelectorAll('.m-pick').forEach(function (c) {

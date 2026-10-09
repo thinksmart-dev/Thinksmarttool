@@ -219,16 +219,89 @@ function openLibraryGroup(items, groupName) {
 // Nhiều ảnh thì sao? Bấm một lần mở HẾT, xếp dọc trong cùng khung cuộn — đọc
 // liền mạch, vẫn không đẻ thêm tầng menu nào.
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// HASHTAG NẰM NGAY TRONG TÊN FILE (09/10/2026)
+//
+// Anh Kevin (sale): "làm nhỏ hình lại, mỗi hình có hashtag của chương trình (IUL,
+// TERM, MAXFUND...) để search ra đúng hình muốn gửi". Chủ tool chốt: đặt tên file
+// theo nội dung hình, hashtag viết luôn trong tên:
+//     "Thợ nail 1 - Yên tâm làm việc #IUL #ThoNail.jpg"
+//      |------ tiêu đề hiện dưới ảnh -----| |- hashtag -|
+// Thêm ảnh mới = thả file đặt tên đúng kiểu đó vào thư mục SMS/ rồi push. Không
+// có bảng tag nào khác phải sửa theo.
+// ☠️ Thư mục con bắt đầu bằng "_" (SMS/_goc/ giữ bản ảnh dài gốc trước khi cắt)
+// KHÔNG lên lưới: bỏ điều kiện này là ảnh dài 1080x7082 hiện lại thành một ô
+// trùng hình với ô đầu tiên.
+// ---------------------------------------------------------------------------
+// Dải dấu thanh sau khi tách NFD. Dựng bằng fromCharCode chứ không gõ escape:
+// công cụ ghi file đã từng nuốt gạch chéo ngược làm regex hỏng im lặng.
+const SMS_DAU_THANH = new RegExp('[' + String.fromCharCode(0x300) + '-' + String.fromCharCode(0x36f) + ']', 'g');
+const SMS_DUOI_ANH = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
+// "Thợ Nail" -> "tho nail": gõ có dấu hay không dấu, hoa hay thường đều ra.
+function smsBoDau(s) {
+  return String(s || '').toLowerCase().normalize('NFD').replace(SMS_DAU_THANH, '').replace(/đ/g, 'd').trim();
+}
+
+function tachTagSms(tenFile) {
+  const tru = smsBoDuoi(tenFile);
+  const manh = tru.split('#');
+  let tieuDe = manh[0].trim();
+  while (tieuDe.endsWith('-')) tieuDe = tieuDe.slice(0, -1).trim();
+  const tags = [];
+  manh.slice(1).forEach(m => {
+    const t = m.trim().split(' ')[0];           // hashtag kết thúc ở dấu cách đầu tiên
+    if (t && !tags.some(x => smsBoDau(x) === smsBoDau(t))) tags.push(t);
+  });
+  return { tieuDe: tieuDe || tru, tags };
+}
+
+// Mỗi FILE ẢNH = một ô. Cố ý KHÔNG qua preprocessLibraryItems: hàm đó gộp
+// "Tên.jpg" + "Tên (2).jpg" thành một tài liệu nhiều trang, còn ở đây sale gửi
+// từng tấm lẻ nên tấm nào cũng phải tìm và tải riêng được.
+//
+// ẢNH NHỎ CHO LƯỚI: SMS/_thumb/<cùng tên>.jpg (rộng 480px, vài chục KB). Lưới chỉ
+// tải ảnh nhỏ; ảnh đủ nét chỉ tải khi bấm xem to hoặc bấm Tải về. Không có ảnh nhỏ
+// thì lưới dùng thẳng ảnh gốc: vẫn chạy, chỉ nặng. Sinh ảnh nhỏ bằng
+// `python scripts/tao-anh-nho-sms.py` sau mỗi lần thêm ảnh vào SMS/.
+function smsBoDuoi(ten) {
+  return String(ten).replace(/[.](jpe?g|png|pdf|svg|webp|gif)$/i, '');
+}
+
 function danhSachSms() {
   const groups = appState.library.sms || {};
-  return Object.keys(groups).sort(carrierSort)
-    .flatMap(g => preprocessLibraryItems(groups[g] || []))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  const anhNho = {};
+  (groups['_thumb'] || []).forEach(f => { anhNho[smsBoDuoi(f.name)] = f.path; });
+  return Object.keys(groups).filter(g => !g.startsWith('_')).sort(carrierSort)
+    .flatMap(g => groups[g] || [])
+    .filter(it => SMS_DUOI_ANH.includes(String(it.ext || '').toLowerCase()))
+    .sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }))
+    .map(it => {
+      const t = tachTagSms(it.name);
+      const khoa = smsBoDau(t.tieuDe + ' ' + t.tags.join(' '));
+      return Object.assign({}, it, {
+        tieuDe: t.tieuDe, tags: t.tags,
+        thumb: anhNho[smsBoDuoi(it.name)] || it.path,
+        khoaTim: khoa, khoaLien: khoa.split(' ').join('')
+      });
+    });
+}
+
+// Một ảnh có khớp từ khoá không. Khớp khi MỌI từ gõ vào đều có mặt (thứ tự nào
+// cũng được), hoặc khi viết liền thì trùng một hashtag ("thonail" ra "#ThoNail",
+// "tho nail" cũng ra). Dấu # và dấu gạch nối trong ô tìm coi như dấu cách:
+// sách của hãng in "MAX - FUNDED IUL" nên sale gõ "max-funded" vẫn phải ra "#MaxFundedIUL".
+function khopSms(item, tuKhoa) {
+  const q = smsBoDau(String(tuKhoa || '').split('#').join(' ').split('-').join(' '));
+  if (!q) return true;
+  const tu = q.split(' ').filter(Boolean);
+  if (tu.every(w => item.khoaTim.includes(w))) return true;
+  return item.khoaLien.includes(tu.join(''));
 }
 
 function renderSmsNavSection(container, q) {
   const items = danhSachSms();
-  if (q && !'sms tin nhắn mẫu'.includes(q) && !items.some(it => it.name.toLowerCase().includes(q))) return 0;
+  if (q && !'sms tin nhắn mẫu'.includes(q) && !items.some(it => khopSms(it, q))) return 0;
 
   const folder = document.createElement('div');
   folder.className = 'tree-folder nav-section nav-section-flat';
@@ -269,7 +342,7 @@ function openSmsAll() {
   updateHeaderActions();
 
   const ten = items.length === 1
-    ? String(items[0].name).replace(/\.(jpe?g|png|pdf|svg|webp)$/i, '')
+    ? items[0].tieuDe
     : `Tin nhắn mẫu (${items.length})`;
   if (dom.activeFileTitle) {
     dom.activeFileTitle.textContent = items.length ? ten : 'Tin nhắn mẫu';
@@ -280,25 +353,32 @@ function openSmsAll() {
   // Đo lường: 1 lượt XEM, gộp nhóm giống brochure. Best-effort.
   if (items.length && window.TSTAuth && TSTAuth.logUsage) TSTAuth.logUsage('view', 'Tin nhắn mẫu: ' + ten);
 
-  showTallPreview(items);
+  smsLoc.q = ''; smsLoc.tag = '';      // moi lan mo muc la xem lai tu dau
+  showSmsGallery(items);
   updateStatus(items.length ? `Đang xem: ${ten}` : 'Chưa có tin nhắn mẫu nào');
 }
 
 // ---------------------------------------------------------------------------
-// KHUNG XEM ẢNH DỌC RẤT CAO — "SMS / Tin nhắn mẫu" (10/08/2026)
+// LƯỚI ẢNH NHỎ + Ô TÌM + HASHTAG — "SMS / Tin nhắn mẫu" (09/10/2026)
 //
-// ☠️ Vì sao phải có khung riêng, đừng gộp lại: khung brochure thường ghim
-// `max-height: 60vh` lên ảnh (style.css .library-thumb img). Ảnh SMS đầu tiên đo
-// được 1080 x 7082 — cao gấp 6,6 lần bề ngang. Ghim chiều cao xong nó chỉ còn
-// ~9vh bề ngang: một SỢI CHỈ trên màn hình, chữ không đọc nổi.
-// Ở đây làm ngược lại: ghim BỀ NGANG cỡ một cái điện thoại (~480px) rồi cho
-// CUỘN DỌC. Nhận cả một mảng item nên dùng được cho 1 ảnh lẫn cả nhóm.
-//
-// Nút "Tải về" nằm trong thanh DÍNH TRÊN ĐỈNH (position: sticky), không để dưới
-// đáy — với ảnh cao 7000px thì nút ở đáy cách nội dung cả một quãng cuộn, đúng
-// lỗi chủ tool đã bắt hôm 31/07 ("nút download bị tọt xuống dưới luôn").
+// Trước đây bấm mục SMS là mở ảnh to hết khung, cuộn dọc (hàm cũ đã gỡ, nằm ở
+// đúng chỗ này). Có nhiều ảnh thì phải cuộn qua từng tấm mới thấy tấm cần gửi. Nay:
+//   - ảnh thu nhỏ xếp lưới, dưới mỗi ảnh là tiêu đề + hashtag
+//   - ô tìm (tên hoặc hashtag, không cần gõ dấu) + hàng hashtag bấm để lọc
+//   - bấm ảnh nhỏ thì ảnh to THAY CHỖ lưới ngay trong khung, có nút "Quay lại
+//     lưới"; nút Tải về có sẵn ở cả hai chỗ
+// ☠️ Ảnh to KHÔNG làm thành lớp phủ `position: fixed`: .library-view có z-index
+// riêng nên tự thành một tầng xếp, lớp phủ nằm trong nó không bao giờ nổi lên
+// trên thanh bên (z 200) và thanh đầu trang (z 100) được, thanh nút sẽ chui xuống
+// dưới. Đưa lớp phủ ra ngoài #library-view thì lại mất việc ghi lượt tải.
+// Nút tải là thẻ <a download> nằm trong #library-view nên lượt tải vẫn được ghi
+// vào Đo lường bởi đoạn uỷ quyền trong main.js, không phải nối dây gì thêm.
 // ---------------------------------------------------------------------------
-function showTallPreview(items) {
+const smsLoc = { q: '', tag: '' };     // điều kiện lọc đang áp, đặt lại mỗi lần mở mục
+let smsDangXem = null;                 // ô ảnh nhỏ vừa bấm, để đóng ảnh to thì trả tiêu điểm về
+let smsCuonCu = 0;                     // lưới đang cuộn tới đâu lúc bấm, quay lại thì về đúng chỗ đó
+
+function showSmsGallery(items) {
   if (dom.noSelection) dom.noSelection.style.display = 'none';
 
   let view = document.getElementById('library-view');
@@ -308,35 +388,153 @@ function showTallPreview(items) {
     view.className = 'library-view';
     dom.canvasContainer.appendChild(view);
   }
-  view.classList.remove('has-group');
-  view.classList.add('is-tall');
+  view.classList.remove('has-group', 'is-wide');
+  view.classList.add('is-tall');       // mượn khung cuộn dọc sẵn có
 
   if (!items.length) {
     view.innerHTML = `<div class="tall-doc"><div class="tall-doc-bar">
-        <span class="tall-doc-title">Chưa có tin nhắn mẫu — thả ảnh vào folder "SMS/" ở gốc dự án.</span>
+        <span class="tall-doc-title">Chưa có tin nhắn mẫu. Thả ảnh vào thư mục "SMS/" ở gốc dự án.</span>
       </div></div>`;
     view.style.display = 'block';
     return;
   }
 
-  view.innerHTML = items.map(item => {
-    const pages = item.isMultiPage ? item.pages : [item.path];
-    const dl = `/api/download?path=${encodeURIComponent(item.path)}`;
-    const ten = String(item.name).replace(/\.(jpe?g|png|pdf|svg|webp)$/i, '');
-    const anh = pages.map((p, i) => `
-      <img class="tall-doc-img" loading="${i === 0 ? 'eager' : 'lazy'}"
-           src="/api/download?path=${encodeURIComponent(p)}&inline=1"
-           alt="${escapeHtml(ten)}${pages.length > 1 ? ' — trang ' + (i + 1) : ''}">`).join('');
+  // Hashtag gom từ chính các ảnh đang có, kèm số ảnh mang tag đó
+  const dem = {};
+  items.forEach(it => it.tags.forEach(t => {
+    const k = smsBoDau(t);
+    if (!dem[k]) dem[k] = { nhan: t, n: 0 };
+    dem[k].n++;
+  }));
+  const chips = Object.keys(dem).sort((a, b) => dem[b].n - dem[a].n || a.localeCompare(b));
+
+  const the = items.map((it, i) => {
+    const dl = `/api/download?path=${encodeURIComponent(it.path)}`;
+    const tagHtml = it.tags.map(t =>
+      `<button type="button" class="sms-tag" data-tag="${escapeHtml(smsBoDau(t))}" title="Lọc theo #${escapeHtml(t)}">#${escapeHtml(t)}</button>`).join('');
     return `
-      <div class="tall-doc">
-        <div class="tall-doc-bar">
-          <span class="tall-doc-title" title="${escapeHtml(item.name)}">${escapeHtml(ten)}</span>
-          <a class="btn btn-primary btn-sm tall-doc-dl" href="${dl}" download>${NAV_ICONS.download} Tải về</a>
-        </div>
-        ${anh}
-      </div>`;
+      <article class="sms-card" data-i="${i}">
+        <button type="button" class="sms-thumb" data-i="${i}" aria-label="Xem ảnh lớn: ${escapeHtml(it.tieuDe)}">
+          <img loading="lazy" decoding="async" src="/api/download?path=${encodeURIComponent(it.thumb)}&inline=1" alt="${escapeHtml(it.tieuDe)}">
+        </button>
+        <div class="sms-ten" title="${escapeHtml(it.tieuDe)}">${escapeHtml(it.tieuDe)}</div>
+        <div class="sms-tags">${tagHtml}</div>
+        <a class="btn btn-secondary btn-sm sms-dl" href="${dl}" download>${NAV_ICONS.download} Tải về</a>
+      </article>`;
   }).join('');
 
+  view.innerHTML = `
+    <div class="sms-kho">
+      <div class="sms-bar">
+        <div class="search-input-container sms-tim">
+          <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" id="sms-tim" autocomplete="off"
+                 placeholder="Tìm theo tên hoặc hashtag, ví dụ: IUL, thợ nail"
+                 aria-label="Tìm tin nhắn mẫu theo tên hoặc hashtag">
+        </div>
+        <div class="sms-chips" role="group" aria-label="Lọc theo hashtag">
+          <button type="button" class="sms-chip" data-tag="">Tất cả <b>${items.length}</b></button>
+          ${chips.map(k => `<button type="button" class="sms-chip" data-tag="${escapeHtml(k)}">#${escapeHtml(dem[k].nhan)} <b>${dem[k].n}</b></button>`).join('')}
+        </div>
+        <span class="sms-dem" id="sms-dem" aria-live="polite"></span>
+      </div>
+      <div class="sms-luoi">${the}</div>
+      <div class="sms-rong" hidden>
+        <b>Không có ảnh nào khớp.</b>
+        <span>Thử gõ ít chữ hơn, hoặc bấm "Tất cả" để xem lại toàn bộ.</span>
+      </div>
+    </div>
+    <div class="sms-xem" hidden>
+      <div class="tall-doc">
+        <div class="tall-doc-bar sms-xem-bar">
+          <button type="button" class="btn btn-secondary btn-sm sms-xem-dong">‹ Quay lại lưới</button>
+          <span class="tall-doc-title sms-xem-ten"></span>
+          <a class="btn btn-primary btn-sm tall-doc-dl sms-xem-dl" href="#" download>${NAV_ICONS.download} Tải về</a>
+        </div>
+        <img class="tall-doc-img sms-xem-img" alt="">
+      </div>
+    </div>`;
+
+  const oTim = view.querySelector('#sms-tim');
+  const kho = view.querySelector('.sms-kho');
+  const xem = view.querySelector('.sms-xem');
+
+  function apDung() {
+    const cards = view.querySelectorAll('.sms-card');
+    let hien = 0;
+    cards.forEach(c => {
+      const it = items[Number(c.dataset.i)];
+      const ok = khopSms(it, smsLoc.q) && (!smsLoc.tag || it.tags.some(t => smsBoDau(t) === smsLoc.tag));
+      c.hidden = !ok;
+      if (ok) hien++;
+    });
+    view.querySelectorAll('.sms-chip').forEach(ch => {
+      const dangChon = ch.dataset.tag === smsLoc.tag;
+      ch.classList.toggle('is-on', dangChon);
+      ch.setAttribute('aria-pressed', String(dangChon));
+    });
+    // Điện thoại: hàng hashtag vuốt ngang (style.css). Bấm hashtag ngay trên một thẻ ảnh thì
+    // nút đang chọn có thể nằm ngoài mép: kéo hàng cho nó hiện ra. Tự tính scrollLeft chứ
+    // không gọi scrollIntoView, hàm đó có thể kéo luôn cả khung lưới theo chiều dọc.
+    const hang = view.querySelector('.sms-chips');
+    const dangOn = hang.querySelector('.sms-chip.is-on');
+    if (dangOn && hang.scrollWidth > hang.clientWidth) {
+      const dau = dangOn.offsetLeft - hang.offsetLeft, cuoi = dau + dangOn.offsetWidth;
+      if (dau < hang.scrollLeft) hang.scrollLeft = dau;
+      else if (cuoi > hang.scrollLeft + hang.clientWidth) hang.scrollLeft = cuoi - hang.clientWidth;
+    }
+    view.querySelector('.sms-rong').hidden = hien > 0;
+    view.querySelector('#sms-dem').textContent =
+      hien === items.length ? `${items.length} ảnh` : `${hien} / ${items.length} ảnh`;
+  }
+
+  function moAnhLon(i, nut) {
+    const it = items[i];
+    if (!it) return;
+    const dl = `/api/download?path=${encodeURIComponent(it.path)}`;
+    xem.querySelector('.sms-xem-ten').textContent = it.tieuDe;
+    xem.querySelector('.sms-xem-ten').title = it.name;
+    xem.querySelector('.sms-xem-dl').href = dl;
+    const img = xem.querySelector('.sms-xem-img');
+    img.src = dl + '&inline=1';
+    img.alt = it.tieuDe;
+    smsDangXem = nut || null;
+    smsCuonCu = view.scrollTop;
+    kho.hidden = true;
+    xem.hidden = false;
+    view.scrollTop = 0;
+    xem.querySelector('.sms-xem-dong').focus();
+  }
+
+  function dongAnhLon() {
+    if (xem.hidden) return;
+    xem.hidden = true;
+    kho.hidden = false;
+    view.scrollTop = smsCuonCu;
+    if (smsDangXem && document.contains(smsDangXem)) smsDangXem.focus({ preventScroll: true });
+    smsDangXem = null;
+  }
+
+  oTim.value = smsLoc.q;
+  oTim.addEventListener('input', () => { smsLoc.q = oTim.value; apDung(); });
+
+  kho.addEventListener('click', (e) => {
+    const chip = e.target.closest('.sms-chip, .sms-tag');
+    if (chip) {
+      // Bấm lại đúng tag đang chọn (ở thẻ ảnh) thì bỏ lọc; chip "Tất cả" có data-tag rỗng
+      const t = chip.dataset.tag || '';
+      smsLoc.tag = (chip.classList.contains('sms-tag') && smsLoc.tag === t) ? '' : t;
+      apDung();
+      return;
+    }
+    const thumb = e.target.closest('.sms-thumb');
+    if (thumb) moAnhLon(Number(thumb.dataset.i), thumb);
+  });
+
+  xem.addEventListener('click', (e) => { if (e.target.closest('.sms-xem-dong')) dongAnhLon(); });
+  xem.addEventListener('keydown', (e) => { if (e.key === 'Escape') { e.stopPropagation(); dongAnhLon(); } });
+
+  apDung();
   view.style.display = 'block';
   view.scrollTop = 0;
 }

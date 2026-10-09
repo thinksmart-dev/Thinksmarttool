@@ -1659,6 +1659,97 @@ body.no-editor .sidebar-right { display: none; }
 }
 .tall-doc-img + .tall-doc-img { margin-top: 16px; }
 
+/* --------------------------------------------------------------------------
+   LƯỚI ẢNH NHỎ + HASHTAG + Ô TÌM — "SMS / Tin nhắn mẫu" (09/10/2026)
+   Anh Kevin (sale): "làm nhỏ hình lại, mỗi hình có hashtag ... để search ra
+   đúng hình muốn gửi". Dựng trong khung cuộn .library-view.is-tall sẵn có.
+   -------------------------------------------------------------------------- */
+.sms-kho { width: min(94%, 1080px); margin: 0 auto; }
+
+/* Thanh tìm + hashtag DÍNH TRÊN ĐỈNH: cuộn lưới tới đâu vẫn đổi được điều kiện lọc */
+.sms-bar {
+  position: sticky; top: 0; z-index: 2;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px 12px;
+  padding: 10px 12px; margin-bottom: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-md);
+}
+.sms-tim { flex: 1 1 260px; width: auto; max-width: 380px; }
+.sms-tim input { padding-top: 8px; padding-bottom: 8px; font-size: var(--fs-sm); }
+.sms-chips { display: flex; flex-wrap: wrap; gap: 6px; flex: 1 1 auto; }
+.sms-chip, .sms-tag {
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text-2);
+  border-radius: var(--r-pill); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: border-color var(--dur) var(--ease), background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.sms-chip { min-height: 32px; padding: 0 12px; font-size: var(--fs-sm); }
+.sms-chip b { font-weight: 800; color: var(--text-3); margin-left: 2px; }
+.sms-chip:hover, .sms-tag:hover { border-color: var(--brand); color: var(--brand); }
+.sms-chip.is-on { background: var(--brand); border-color: var(--brand); color: var(--brand-contrast); }
+.sms-chip.is-on b { color: var(--brand-contrast); }
+.sms-chip:focus-visible, .sms-tag:focus-visible, .sms-thumb:focus-visible, .sms-xem-dong:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 2px;
+}
+.sms-dem { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* Ô ảnh VUÔNG, neo mép trên. Ảnh vuông (2000x2000, loại nhiều nhất) hiện trọn;
+   ảnh dọc (1080x1919) hiện phần đầu, là chỗ có tiêu đề của tấm hình.
+   ☠️ Đừng đổi sang ô dọc 3:4: ảnh vuông sẽ bị cắt hai mép, mất chữ tiêu đề. */
+.sms-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+.sms-card {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0;
+  padding: 8px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-xs);
+}
+.sms-thumb {
+  display: block; width: 100%; padding: 0; border: none; cursor: zoom-in;
+  aspect-ratio: 1 / 1; overflow: hidden; border-radius: var(--r-md); background: var(--surface-3);
+}
+.sms-thumb img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+.sms-ten {
+  font-size: var(--fs-sm); font-weight: 700; color: var(--text); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  min-height: calc(var(--fs-sm) * 1.35 * 2);      /* luôn chừa 2 dòng: hàng hashtag của các ô thẳng nhau */
+}
+.sms-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.sms-tag { padding: 2px 8px; font-size: var(--fs-xs); background: var(--brand-soft); border-color: transparent; color: var(--brand); }
+.sms-dl { margin-top: auto; justify-content: center; text-decoration: none; }
+
+.sms-rong { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px; color: var(--text-2); font-size: var(--fs-sm); text-align: center; }
+.sms-rong b { color: var(--text); font-size: var(--fs-base); }
+
+/* Ảnh to THAY CHỖ lưới ngay trong khung cuộn, dùng lại nguyên .tall-doc (bề ngang
+   cỡ một cái điện thoại, thanh nút dính trên đỉnh). Không làm lớp phủ fixed:
+   .library-view có z-index nên là một tầng xếp riêng, lớp phủ bên trong nó không
+   nổi lên trên thanh bên và thanh đầu trang được. */
+.sms-xem-ten { flex: 1 1 auto; min-width: 0; text-align: center; }
+.sms-xem-dong { flex-shrink: 0; }
+
+/* ☠️ BẮT BUỘC: mấy khối trên có `display` riêng (flex/grid) nên selector class
+   THẮNG thuộc tính `hidden` của trình duyệt. Thiếu dòng này thì ô bị lọc vẫn
+   hiện và lưới không chịu nhường chỗ cho ảnh to (bài học 27/07). */
+.sms-card[hidden], .sms-rong[hidden], .sms-kho[hidden], .sms-xem[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .sms-luoi { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .sms-tim { max-width: none; flex-basis: 100%; }
+  /* 16px: nhỏ hơn là iPhone tự phóng to cả trang khi chạm vào ô. 44px: vừa ngón tay. */
+  .sms-tim input { font-size: 16px; min-height: 44px; }
+  .sms-chip { min-height: 44px; padding: 0 14px; }
+  /* Hashtag trên điện thoại: MỘT hàng, vuốt ngang. Đo 09/10/2026 với 34 ảnh và 8 hashtag:
+     để rớt dòng thì thanh dính cao 297px, chiếm 37% màn 812px, lưới còn hơn nửa màn.
+     Thêm hashtag mới thì hàng này dài ra theo chiều ngang chứ thanh không cao thêm. */
+  .sms-chips { flex: 0 0 100%; min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .sms-chips::-webkit-scrollbar { display: none; }
+  .sms-chip { flex-shrink: 0; }
+  .sms-dem { margin-left: 0; }
+  /* Ô chỉ rộng ~160px: cho tên 3 dòng, 2 dòng là cắt mất chữ của tên dài */
+  .sms-ten { -webkit-line-clamp: 3; min-height: calc(var(--fs-sm) * 1.35 * 3); }
+  /* Hashtag trên thẻ nhỏ (22px): nới VÙNG CHẠM lên ~38px mà không đổi hình dáng */
+  .sms-tag { position: relative; }
+  .sms-tag::after { content: ''; position: absolute; inset: -8px -2px; }
+}
+
 /* Ensure parent library-view is scrollable and styled correctly when group is active */
 .library-view.has-group {
   display: block !important;
@@ -2409,17 +2500,9 @@ body.dark-theme .tp-loi { color: #E9A23B; }
 .tt-sub { font-size: var(--fs-sm); color: var(--text-2); margin: 0 0 22px; }
 .tt-label { display: block; font-size: var(--fs-sm); font-weight: 700; color: var(--text); }
 .tt-label-hang { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
-/* ☠️ Chọn KIỂU GÕ NGÀY — để ngay cạnh ô nhập, không giấu trong cài đặt.
-   Gõ 05/06/1979 thì hai kiểu ra hai ngày khác nhau, lệch tuổi, lệch bậc phí. */
-.tt-thutu { display: inline-flex; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; }
-.tt-thutu-o {
-  padding: 5px 11px; font: inherit; font-size: var(--fs-xs); font-weight: 600;
-  color: var(--text-2); background: var(--surface); border: 0; cursor: pointer;
-  border-right: 1px solid var(--border); white-space: nowrap;
-}
-.tt-thutu-o:last-child { border-right: 0; }
-.tt-thutu-o:hover { background: var(--surface-3); color: var(--text); }
-.tt-thutu-o.dang-chon { background: var(--brand); color: #fff; font-weight: 700; }
+/* Chỉ còn kiểu Mỹ MM/DD/YYYY (chủ tool 09/10/2026). Dòng chữ này đứng ở chỗ hai nút
+   chọn kiểu gõ cũ: placeholder biến mất ngay khi gõ, còn nó thì luôn ở đó. */
+.tt-kieu { font-size: var(--fs-xs); font-weight: 600; color: var(--text-3); white-space: nowrap; }
 .tt-row { display: flex; gap: 10px; align-items: stretch; }
 .tt-input-wrap { position: relative; flex: 1; min-width: 0; display: flex; align-items: center; }
 .tt-input-wrap svg { position: absolute; left: 14px; color: var(--text-3); pointer-events: none; }
@@ -2435,17 +2518,28 @@ body.dark-theme .tp-loi { color: #E9A23B; }
 /* Hàng phụ: đọc-ngược-ngày bên trái · giải thích tuổi bên phải (chủ tool 10/08/2026 —
    trước đó câu giải thích nằm dưới bảng kết quả, đẻ thêm một dòng mà bên phải trống trơn) */
 .tt-dong-phu { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
-.tt-doclai { min-height: 20px; font-size: var(--fs-sm); color: var(--text-3); }
-.tt-doclai.ok { color: var(--brand); font-weight: 600; }
+/* Dòng đọc ngược ngày ra chữ: chốt chặn DUY NHẤT khi sale gõ nhầm ngày trước tháng sau
+   mà cả hai chiều đều hợp lệ (132/365 ngày). 09/10/2026 cho to và đậm hơn (12,5px lên 15px). */
+.tt-doclai { min-height: 24px; font-size: 15px; color: var(--text-3); }
+.tt-doclai.ok { color: var(--brand); font-weight: 700; }
+/* Ngày đọc được cả hai chiều (05/06): nền vàng để mắt buộc phải dừng lại đọc tháng */
+.tt-doclai.can-xem {
+  display: inline-block; padding: 3px 10px; border-radius: var(--r-pill);
+  background: var(--warning-soft); color: #7A4506; font-weight: 800;
+}
+body.dark-theme .tt-doclai.can-xem { background: rgba(233, 162, 59, 0.16); color: #F0B45A; }
 /* Tool tự đổi kiểu đọc → phải NÓI RA bằng màu cảnh báo, không im lặng đổi */
 .tt-doclai.canh-bao { color: #96590A; font-weight: 700; }
 body.dark-theme .tt-doclai.canh-bao { color: #E9A23B; }
 
-/* MỘT HÀNG BA Ô ĐỀU NHAU (chủ tool 10/08/2026): Tuổi thật · Tuổi BH · Ngày tăng tuổi.
-   Trước đó là 2 ô trên + 1 ô trải ngang dưới, nhìn lệch nhịp. */
+/* MỘT HÀNG, CÁC Ô ĐỀU NHAU (chủ tool 10/08/2026: không xếp 2 ô trên + 1 ô trải ngang dưới).
+   Từ 09/10/2026 ô thứ ba "Sắp tăng tuổi" chỉ có mặt khi còn từ 60 ngày trở xuống:
+   bình thường là 2 cột chia đôi hàng, có ô đó thì thành 3 cột (.co-sap-tang).
+   ☠️ Để cứng 3 cột là lúc ô thứ ba ẩn sẽ hở một khoảng trắng bằng 1/3 hàng. */
 /* ⚠️ minmax(0, 1fr) chứ KHÔNG phải 1fr: `1fr` = minmax(auto, 1fr) nên ô nào có nội
-   dung dài (ngày 01/23/2027) sẽ tự nở rộng hơn hai ô kia — đo được 96/96/159px. */
-.tt-ketqua { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--divider); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+   dung dài sẽ tự nở rộng hơn các ô kia (đo được 96/96/159px). */
+.tt-ketqua { margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--divider); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.tt-ketqua.co-sap-tang { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .tt-o {
   background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-lg);
   padding: 16px 18px; display: flex; flex-direction: column; gap: 4px;
@@ -2457,15 +2551,32 @@ body.dark-theme .tt-doclai.canh-bao { color: #E9A23B; }
 .tt-o-chinh .tt-o-nhan { color: var(--brand); }
 .tt-o-so { font-size: 34px; font-weight: 800; line-height: 1.1; color: var(--text); font-variant-numeric: tabular-nums; }
 .tt-o-chinh .tt-o-so { color: var(--brand); }
-/* Ô thứ ba: ngày đổi bậc phí. Cùng khuôn với hai ô tuổi để hàng đều nhau, nhưng con
-   số nhỏ hơn — nó là thông tin phụ trợ, không phải số sale chép đi báo giá. */
-.tt-o-ngay-so { font-size: 22px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1.2; }
-.tt-o-conlai { font-size: var(--fs-xs); color: var(--text-2); }
-/* Sắp tới ngày đổi bậc phí → đổi màu để sale thấy ngay, khỏi phải đọc số */
-.tt-o-ngay.gan-ke { background: var(--warning-soft); border-color: transparent; }
-.tt-o-ngay.gan-ke .tt-o-nhan, .tt-o-ngay.gan-ke .tt-o-conlai { color: #96590A; }
-body.dark-theme .tt-o-ngay.gan-ke .tt-o-nhan,
-body.dark-theme .tt-o-ngay.gan-ke .tt-o-conlai { color: #E9A23B; }
+/* ☠️ .tt-o có `display: flex` (selector class) nên thuộc tính `hidden` KHÔNG tự ẩn
+   được nó. Thiếu dòng này thì ô "Sắp tăng tuổi" hiện mãi dù JS đã đặt hidden. */
+.tt-o[hidden] { display: none; }
+/* Ô "SẮP TĂNG TUỔI" (09/10/2026). Chủ tool: "khi nào tầm 60 ngày tức 2 tháng sẽ tăng,
+   hãy cho ô này thông báo rõ nét hơn". Nó chỉ xuất hiện khi có chuyện cần sale để ý,
+   nên đã hiện là phải khác hẳn hai ô tuổi: nền cam nhạt + viền cam 2px + chấm báo.
+   Còn từ 30 ngày trở xuống (.gan-ke) thì tô đặc.
+   Màu chữ lấy bộ đã đo đạt AA (#96590A trên nền --warning-soft), KHÔNG dùng thẳng
+   token --warning cho chữ (đo 22/07 chỉ 3,62:1). padding bớt 1px bù cho viền dày hơn
+   1px, để ba ô vẫn cao bằng nhau. */
+.tt-o-ngay { background: var(--warning-soft); border: 2px solid #C2740B; padding: 15px 17px; }
+.tt-o-ngay .tt-o-nhan { color: #96590A; display: flex; align-items: center; gap: 6px; }
+.tt-o-ngay .tt-o-nhan::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #C2740B; flex: 0 0 auto; }
+.tt-o-ngay-so { font-size: 26px; font-weight: 800; color: #7A4506; font-variant-numeric: tabular-nums; line-height: 1.25; }
+.tt-o-conlai { font-size: var(--fs-sm); font-weight: 600; color: #96590A; font-variant-numeric: tabular-nums; }
+.tt-o-ngay.gan-ke { background: #96590A; border-color: #96590A; }
+.tt-o-ngay.gan-ke .tt-o-nhan, .tt-o-ngay.gan-ke .tt-o-ngay-so, .tt-o-ngay.gan-ke .tt-o-conlai { color: #fff; }
+.tt-o-ngay.gan-ke .tt-o-nhan::before { background: #fff; }
+body.dark-theme .tt-o-ngay { border-color: #E9A23B; }
+body.dark-theme .tt-o-ngay .tt-o-nhan, body.dark-theme .tt-o-conlai { color: #E9A23B; }
+body.dark-theme .tt-o-ngay .tt-o-nhan::before { background: #E9A23B; }
+body.dark-theme .tt-o-ngay-so { color: #F6C97A; }
+body.dark-theme .tt-o-ngay.gan-ke { background: #E9A23B; border-color: #E9A23B; }
+body.dark-theme .tt-o-ngay.gan-ke .tt-o-nhan, body.dark-theme .tt-o-ngay.gan-ke .tt-o-ngay-so,
+body.dark-theme .tt-o-ngay.gan-ke .tt-o-conlai { color: #1A1206; }
+body.dark-theme .tt-o-ngay.gan-ke .tt-o-nhan::before { background: #1A1206; }
 .tt-giaithich { margin: 0; font-size: var(--fs-sm); color: var(--text-2); text-align: right; flex: 1; min-width: 220px; }
 
 .tt-ls-dau { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -2494,7 +2605,9 @@ body.dark-theme .tt-o-ngay.gan-ke .tt-o-conlai { color: #E9A23B; }
 }
 
 @media (max-width: 1100px) {
-  .tt-ketqua { grid-template-columns: 1fr 1fr; }
+  /* Phải ghi cả .co-sap-tang: luật 3 cột ở trên mạnh hơn (2 class) nên không ghi là
+     màn hẹp vẫn bị ép 3 ô chen nhau. Ô cảnh báo trải hết hàng dưới (luật .tt-o-ngay ngay sau). */
+  .tt-ketqua, .tt-ketqua.co-sap-tang { grid-template-columns: 1fr 1fr; }
   .tt-o-ngay { grid-column: 1 / -1; }
 }
 @media (max-width: 900px) {
@@ -2504,7 +2617,7 @@ body.dark-theme .tt-o-ngay.gan-ke .tt-o-conlai { color: #E9A23B; }
   .tt-card { padding: 20px; }
   .tt-row { flex-direction: column; }
   .tt-btn { padding: 13px; }
-  .tt-ketqua { grid-template-columns: 1fr; }
+  .tt-ketqua, .tt-ketqua.co-sap-tang { grid-template-columns: 1fr; }
   .tt-o-ngay { grid-column: auto; }
 }
 

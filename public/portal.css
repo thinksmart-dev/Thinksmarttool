@@ -1977,6 +1977,50 @@ body.dark-theme .up-inline input[type="date"] { color-scheme: dark; }
 /* Preset nằm ngang nên KHÔNG giãn đều nữa (cột 300px cũ mới cần flex:1 → vỡ 3+1 hàng) */
 /* ---- TAB "KHOÁ MỤC" (31/07/2026) — Super Admin tự khoá từng phần của Tool ----
    Một hàng = một mục. Trạng thái đọc được ngay từ MÀU + chữ, không phải suy từ nhãn nút. */
+/* --- Hòm thư góp ý (tab "Góp ý", chỉ Super Admin — 17/09/2026) --------------
+   ☠️ Tên class mang tiền tố `gopy-` và KHÁC hẳn bộ class trong `gopy.css`
+   (nút nổi dùng .gopy-nut/.gopy-hop/.gopy-dau). members.html nạp CẢ HAI file,
+   trùng một tên là một bên âm thầm đè bên kia (bài học `5ar`). */
+.gopy-tom { font-size: var(--fs-sm); color: var(--text-2); margin-bottom: 10px; }
+.gopy-tom b { color: var(--brand); }
+.gopy-trong { font-size: var(--fs-sm); color: var(--text-3); padding: 18px 0; text-align: center; }
+
+.gopy-item {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);      /* vạch màu = CHƯA đọc */
+  border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 8px;
+}
+/* Đã đọc thì lùi hẳn về sau: mất vạch màu, chữ nhạt đi. Nhìn lướt là biết còn
+   bao nhiêu việc chưa xử, không phải đọc từng dòng. */
+.gopy-item.da-doc { border-left-color: var(--border); background: var(--surface-2); }
+.gopy-item.da-doc .gopy-noidung { color: var(--text-2); }
+
+.gopy-item-dau {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px;
+}
+.gopy-ten   { font-weight: 800; font-size: var(--fs-sm); color: var(--text); }
+.gopy-phong {
+  font-size: 11px; font-weight: 700; color: var(--brand);
+  background: var(--brand-soft); padding: 2px 8px; border-radius: var(--r-pill);
+}
+.gopy-luc   { font-size: 12px; color: var(--text-3); }
+/* Nút Request (09/10/2026): tiêu đề + nhóm khách hàng đứng trên nội dung */
+.gopy-tieude { font-size: var(--fs-base); font-weight: 800; color: var(--text); margin-bottom: 2px; overflow-wrap: anywhere; }
+.gopy-nhomkhach { font-size: var(--fs-sm); color: var(--text-2); margin-bottom: 6px; overflow-wrap: anywhere; }
+.gopy-nhomkhach b { color: var(--text); }
+.gopy-item.da-doc .gopy-tieude { color: var(--text-2); }
+.gopy-lark-hong {
+  font-size: 11px; font-weight: 700; color: var(--danger, #d64545);
+  background: var(--danger-soft, #fdecec); padding: 2px 8px; border-radius: var(--r-pill);
+}
+.gopy-item-dau .gopy-doc { margin-left: auto; }
+/* white-space: pre-wrap để giữ nguyên cách sale xuống dòng khi gõ — họ gạch đầu
+   dòng từng ý, ép về một khối liền là mất ý đồ của người viết. */
+.gopy-noidung {
+  font-size: var(--fs-sm); line-height: 1.55; color: var(--text);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+
 .khoa-list { display: flex; flex-direction: column; gap: 8px; }
 .khoa-row {
   /* MỘT HÀNG DUY NHẤT (chủ tool 10/08/2026). Bốn cột, mỗi cột trả lời một câu:

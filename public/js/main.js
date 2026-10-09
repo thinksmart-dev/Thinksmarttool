@@ -42,7 +42,7 @@ function renderFileTree() {
   else if (appState.khoaMuc.appform) {
     dom.treeContainer.appendChild(makeKhoiKhoa('Application Form / Biểu mẫu', NAV_ICONS.appform, 'appform'));
   } else {
-    total += renderLibrarySection(dom.treeContainer, 'Application Form / Biểu mẫu', NAV_ICONS.appform, appState.library.appform, q, true);
+    total += renderLibrarySection(dom.treeContainer, 'Application Form / Biểu mẫu', NAV_ICONS.appform, appState.library.appform, q);
   }
 
   // ---------- NAME CARD (js/namecard.js) ----------
@@ -64,7 +64,7 @@ function renderFileTree() {
   // ---------- SMS / TIN NHẮN MẪU (js/brochure.js — 10/08/2026) ----------
   // MỘT DÒNG PHẲNG như Compare, KHÔNG menu phụ (chủ tool yêu cầu). Bấm là mở hết
   // ảnh tin nhắn trong một khung cuộn dọc — ảnh rất cao (1080x7082) nên không
-  // dùng được khung ảnh brochure. Chi tiết ở showTallPreview.
+  // dùng được khung ảnh brochure. Chi tiết ở showSmsGallery.
   // File nằm ở thư mục `SMS/` NGAY GỐC dự án (không phải 2-Templates/ — chỗ đó
   // bị gitignore, bỏ vào là mất trên bản live).
   if (!thay('sms')) { /* chưa tới nấc */ }

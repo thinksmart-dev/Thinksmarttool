@@ -153,7 +153,7 @@ function renderProposalNavSection(container, proposals, q) {
   });
   // Khi không tìm kiếm: luôn hiện đủ các hãng chính (kể cả hãng chưa có mẫu, vd Allianz)
   if (!q) MASTER_CARRIERS.forEach(c => { propGroups[c] = propGroups[c] || []; });
-  const propSection = makeCollapsibleFolder(nhanMuc('Proposal / Báo giá'), { extraClass: 'nav-section', iconHTML: NAV_ICONS.proposal, moi: 'updated' });
+  const propSection = makeCollapsibleFolder(nhanMuc('Proposal / Báo giá'), { extraClass: 'nav-section', iconHTML: NAV_ICONS.proposal });
   // Thông báo cập nhật — chỉ khi KHÔNG đang tìm kiếm (đang tìm thì màn hình là kết quả,
   // chen thông báo vào là nhiễu) và người dùng chưa bấm tắt.
   if (!q && !daTatThongBao()) propSection.content.appendChild(makeBangTinCapNhat());

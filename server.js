@@ -320,7 +320,7 @@ const LIBRARY_SECTIONS = {
   // ĐÃ commit vào repo (khác Brochure/ bị gitignore) → mục này chạy CẢ trên Vercel.
   soSanh: 'Bang so sanh quyen loi cac hang',
   // Tin nhắn mẫu cho sale (chủ tool đưa 10/08/2026). Ảnh dọc rất cao (bản đầu
-  // 1080x7082) nên KHÔNG xem bằng khung brochure thường — xem showTallPreview
+  // 1080x7082) nên KHÔNG xem bằng khung brochure thường — xem showSmsGallery
   // trong js/brochure.js.
   // ☠️ Folder phải ở GỐC repo, KHÔNG để trong 2-Templates/: thư mục đó bị
   // .gitignore chặn → chạy được ở máy nhưng MẤT TRẮNG trên bản live, mà không có
@@ -616,6 +616,191 @@ app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
     return res.json({ success: true, hard: false, email: target.email });
   } catch (e) {
     return res.status(500).json({ error: e.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// NÚT REQUEST (09/10/2026): sale gửi yêu cầu → LƯU vào public.gop_y → BÁO LARK
+//
+// Chủ tool: "làm một nút request ... các bạn cần cái gì sẽ tự động gửi tin nhắn
+// qua Lark cho anh". Form 3 ô do chủ tool chốt: tiêu đề · nội dung mong muốn ·
+// nhóm khách hàng muốn gửi tới. Nút là nút tròn nổi có sẵn (public/js/gopy.js).
+//
+// VÌ SAO ĐI QUA MÁY CHỦ chứ trình duyệt không tự ghi bảng như bản 17/09:
+//   1. Link bot Lark là BÍ MẬT: ai có link là nhắn được vào nhóm của chủ tool.
+//      Nó chỉ nằm ở biến môi trường LARK_WEBHOOK_URL (.env / Vercel), không bao
+//      giờ nằm trong mã chạy ở máy sale.
+//   2. Giới hạn số lần gửi phải đếm ở nơi sale không sửa được.
+//   3. Tin Lark và dòng trong bảng luôn là MỘT: không có chuyện Lark kêu mà bảng
+//      trống, hay ngược lại mà không ai biết (cột lark_ok ghi lại kết quả báo).
+//
+// ☠️ Lark hỏng KHÔNG làm mất yêu cầu: dòng đã lưu trước khi gọi Lark, sale vẫn
+//    thấy "Đã gửi", chủ tool vẫn đọc được ở trang Members (tab Yêu cầu) kèm nhãn
+//    "chưa báo được Lark". Ngược lại (lưu hỏng) thì KHÔNG gọi Lark và báo lỗi thật.
+// ☠️ Chữ sale gõ chỉ đi vào thẻ `plain_text` của Lark. Đưa vào `lark_md` là cho
+//    phép chèn link giả và thẻ <at> nhắc cả nhóm.
+// Cần chạy supabase/yeucau.sql một lần (thêm cột tieu_de, nhom_khach, lark_ok).
+// Bài kiểm phần gửi Lark: node scripts/kiem-lark.js (dùng máy chủ Lark giả).
+// ---------------------------------------------------------------------------
+const crypto = require('crypto');
+const LARK_WEBHOOK_URL = (process.env.LARK_WEBHOOK_URL || '').trim();
+const LARK_WEBHOOK_SECRET = (process.env.LARK_WEBHOOK_SECRET || '').trim();   // chỉ cần khi bot bật "Signature verification"
+const YC_TRANG_XEM = (process.env.YC_TRANG_XEM || 'https://tool.thinksmartinsurance.com/members').trim();
+const YC_TOI_DA = { tieu_de: 150, noi_dung: 4000, nhom_khach: 200 };   // khớp public/js/gopy.js + supabase/yeucau.sql
+const YC_GIOI_HAN = { so: 5, phut: 10 };                               // mỗi người tối đa 5 yêu cầu / 10 phút
+
+// Chỉ nhận đúng địa chỉ bot của Lark (bản quốc tế) hoặc Feishu. Dán nhầm một link
+// khác vào biến môi trường thì KHÔNG gửi nội dung của sale tới đó.
+function larkUrlHopLe(url) {
+  try {
+    const u = new URL(url);
+    if (u.protocol === 'https:' && ['open.larksuite.com', 'open.feishu.cn'].includes(u.hostname)
+        && u.pathname.startsWith('/open-apis/bot/v2/hook/')) return true;
+    // Máy dev: cho trỏ vào máy chủ Lark GIẢ ở 127.0.0.1 để chạy bài kiểm. Trên Vercel thì không.
+    return !process.env.VERCEL && u.protocol === 'http:' && u.hostname === '127.0.0.1';
+  } catch (e) { return false; }
+}
+
+// Chữ ký của bot Lark: HMAC-SHA256, KHOÁ là "<giây>\n<secret>", nội dung RỖNG, ra base64.
+function larkKy(than, secret, giay) {
+  if (!secret) return than;
+  const ts = String(giay);
+  const sign = crypto.createHmac('sha256', ts + '\n' + secret).update('').digest('base64');
+  return Object.assign({ timestamp: ts, sign: sign }, than);
+}
+
+// Hai dạng tin cho CÙNG một yêu cầu: thẻ (đẹp, có nút mở trang) và chữ trơn (dự phòng).
+function larkThan(yc, trangXem) {
+  const dong = [
+    'Người gửi: ' + yc.nguoi + (yc.phong ? ' (' + yc.phong + ')' : ''),
+    'Nhóm khách hàng: ' + yc.nhom_khach,
+    'Gửi từ trang: ' + yc.trang
+  ].join('\n');
+  const the = {
+    msg_type: 'interactive',
+    card: {
+      config: { wide_screen_mode: true },
+      header: { template: 'blue', title: { tag: 'plain_text', content: 'Yêu cầu mới: ' + yc.tieu_de } },
+      elements: [
+        { tag: 'div', text: { tag: 'plain_text', content: dong } },
+        { tag: 'hr' },
+        { tag: 'div', text: { tag: 'plain_text', content: yc.noi_dung } },
+        { tag: 'action', actions: [{ tag: 'button', type: 'primary', url: trangXem,
+            text: { tag: 'plain_text', content: 'Mở danh sách yêu cầu' } }] }
+      ]
+    }
+  };
+  // Tin chữ trơn của Lark hiểu thẻ <at ...>: đổi dấu "<" để sale không nhắc được cả nhóm.
+  const chu = {
+    msg_type: 'text',
+    content: { text: ('Yêu cầu mới: ' + yc.tieu_de + '\n' + dong + '\n\n' + yc.noi_dung).split('<').join('‹') }
+  };
+  return { the: the, chu: chu };
+}
+
+// → { ok: true, cach: 'the' | 'chu' }  hoặc  { ok: false, ly_do: 'chua_noi' | 'url_sai' | 'khong_toi' | 'lark_tu_choi', loi }
+// Mỗi lần gọi chờ tối đa 4 giây: hàm trên Vercel có hạn chạy, treo ở đây là sale
+// thấy nút "Đang gửi…" quay mãi dù yêu cầu đã lưu xong.
+async function larkGui(url, secret, yc, trangXem) {
+  if (!url) return { ok: false, ly_do: 'chua_noi' };
+  if (!larkUrlHopLe(url)) return { ok: false, ly_do: 'url_sai' };
+  const than = larkThan(yc, trangXem);
+  const gui = async (b) => {
+    const ctl = new AbortController();
+    const hen = setTimeout(() => ctl.abort(), 4000);
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify(larkKy(b, secret, Math.floor(Date.now() / 1000))),
+        signal: ctl.signal
+      });
+      const j = await r.json().catch(() => ({}));
+      const ok = r.ok && (j.code === 0 || j.StatusCode === 0);
+      return { ok: ok, toi: true, loi: ok ? '' : ('HTTP ' + r.status + ' ' + (j.msg || j.StatusMessage || '')).trim() };
+    } catch (e) {
+      return { ok: false, toi: false, loi: e.name === 'AbortError' ? 'quá 4 giây không trả lời' : e.message };
+    } finally { clearTimeout(hen); }
+  };
+  const a = await gui(than.the);
+  if (a.ok) return { ok: true, cach: 'the' };
+  // Không tới được Lark (mạng, quá giờ) thì gửi lại dạng chữ cũng vô ích: dừng luôn.
+  if (!a.toi) return { ok: false, ly_do: 'khong_toi', loi: a.loi };
+  const b = await gui(than.chu);
+  if (b.ok) return { ok: true, cach: 'chu', loi_the: a.loi };
+  return { ok: false, ly_do: 'lark_tu_choi', loi: b.loi || a.loi };
+}
+
+// Cùng luật với duocThay() trong public/js/gopy.js: nấc phát hành của mục 'gopy'.
+function ycDuocThay(nac, vaiTro) {
+  if (nac === 'all') return true;
+  if (nac === 'admin') return vaiTro === 'admin' || vaiTro === 'super_admin';
+  return vaiTro === 'super_admin';
+}
+
+app.post('/api/yeu-cau', async (req, res) => {
+  if (!supabaseAdmin) return res.status(503).json({ error: 'Máy chủ chưa cấu hình SUPABASE_SERVICE_ROLE_KEY.' });
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  if (!token) return res.status(401).json({ error: 'Thiếu token đăng nhập.' });
+
+  try {
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+    if (error || !user) return res.status(401).json({ error: 'Phiên đăng nhập không hợp lệ.' });
+    const { data: hoSo, error: pErr } = await supabaseAdmin
+      .from('profiles').select('id, full_name, email, role, status, department').eq('id', user.id).single();
+    if (pErr || !hoSo) return res.status(403).json({ error: 'Không tìm thấy hồ sơ người dùng.' });
+    if (hoSo.status !== 'active') return res.status(403).json({ error: 'Tài khoản chưa được duyệt hoặc đã bị khoá.' });
+
+    // Nấc phát hành: nút chưa mở cho ai thì đường API cũng không nhận của người đó.
+    // Đọc hỏng thì coi như nấc 'super' (hỏng về phía GIẤU, giống phía trình duyệt).
+    const { data: muc } = await supabaseAdmin.from('khoa_muc').select('hien_cho, khoa').eq('muc', 'gopy').maybeSingle();
+    const nac = (muc && muc.hien_cho) || 'super';
+    if (!ycDuocThay(nac, hoSo.role) || (muc && muc.khoa && hoSo.role === 'user')) {
+      return res.status(403).json({ error: 'Mục gửi yêu cầu chưa mở cho tài khoản này.' });
+    }
+
+    const b = req.body || {};
+    const gon = v => String(v == null ? '' : v).trim();
+    const tieu_de = gon(b.tieu_de), noi_dung = gon(b.noi_dung), nhom_khach = gon(b.nhom_khach);
+    const trang = /^[a-z0-9_-]{1,40}$/i.test(gon(b.trang)) ? gon(b.trang) : 'khong-ro';
+    if (!tieu_de) return res.status(400).json({ error: 'Chưa có tiêu đề.' });
+    if (!noi_dung) return res.status(400).json({ error: 'Chưa có nội dung mong muốn.' });
+    if (!nhom_khach) return res.status(400).json({ error: 'Chưa ghi nhóm khách hàng muốn gửi tới.' });
+    if (tieu_de.length > YC_TOI_DA.tieu_de || noi_dung.length > YC_TOI_DA.noi_dung || nhom_khach.length > YC_TOI_DA.nhom_khach) {
+      return res.status(400).json({ error: 'Nội dung dài quá giới hạn cho phép.' });
+    }
+
+    const tu = new Date(Date.now() - YC_GIOI_HAN.phut * 60000).toISOString();
+    const { count, error: cErr } = await supabaseAdmin
+      .from('gop_y').select('id', { count: 'exact', head: true }).eq('user_id', hoSo.id).gte('at', tu);
+    if (cErr) return res.status(500).json({ error: 'Không đọc được bảng yêu cầu: ' + cErr.message });
+    if ((count || 0) >= YC_GIOI_HAN.so) {
+      return res.status(429).json({ error: 'Bạn vừa gửi ' + count + ' yêu cầu trong ' + YC_GIOI_HAN.phut + ' phút. Đợi một lát rồi gửi tiếp.' });
+    }
+
+    const { data: dong, error: iErr } = await supabaseAdmin
+      .from('gop_y').insert({ user_id: hoSo.id, tieu_de: tieu_de, noi_dung: noi_dung, nhom_khach: nhom_khach, trang: trang })
+      .select('id').single();
+    if (iErr || !dong) {
+      const thieuCot = /tieu_de|nhom_khach|lark_ok|schema cache/i.test((iErr && iErr.message) || '');
+      return res.status(500).json({ error: thieuCot
+        ? 'Bảng yêu cầu chưa có cột mới. Cần chạy file supabase/yeucau.sql trong Supabase.'
+        : 'Không lưu được yêu cầu: ' + ((iErr && iErr.message) || 'lỗi không rõ') });
+    }
+
+    const kq = await larkGui(LARK_WEBHOOK_URL, LARK_WEBHOOK_SECRET, {
+      tieu_de: tieu_de, noi_dung: noi_dung, nhom_khach: nhom_khach, trang: trang,
+      nguoi: hoSo.full_name || hoSo.email || 'Không rõ', phong: gon(hoSo.department)
+    }, YC_TRANG_XEM);
+    // lark_ok: true = đã báo · false = có link bot mà báo hỏng · null = chưa nối bot (máy dev)
+    if (kq.ok || kq.ly_do !== 'chua_noi') {
+      if (!kq.ok) console.error('[yeu-cau] Lark không nhận tin của dòng ' + dong.id + ':', kq.ly_do, kq.loi || '');
+      await supabaseAdmin.from('gop_y').update({ lark_ok: kq.ok }).eq('id', dong.id);
+    }
+    return res.json({ success: true, id: dong.id, lark: kq.ok ? 'ok' : kq.ly_do });
+  } catch (e) {
+    return res.status(500).json({ error: 'Lỗi máy chủ: ' + e.message });
   }
 });
 

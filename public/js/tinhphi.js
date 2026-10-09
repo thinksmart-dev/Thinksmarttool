@@ -306,7 +306,7 @@ function renderTinhPhiNavSection(container, q) {
   el.setAttribute('title', 'Tra phí Term Life theo tuổi, mệnh giá, giới tính, hạng sức khoẻ');
   el.innerHTML = `
     <span class="tree-folder-icon">${NAV_ICONS.tinhphi}</span>
-    <span class="tree-folder-label">${nhanMuc('Quote / Tính phí')}</span><span class="nav-new">new</span>
+    <span class="tree-folder-label">${nhanMuc('Quote / Tính phí')}</span>
   `;
   el.addEventListener('click', async () => {
     if (!(await confirmLeaveUnsaved())) return;

@@ -37,16 +37,16 @@ const TT_TOI_DA = 20;                        // giữ 20 lần gần nhất
 // tuổi, sai bậc phí, và KHÔNG có dấu hiệu nào cho người dùng biết.
 // Gần một nửa số ngày trong năm rơi vào vùng nhập nhằng này.
 //
-// Cách xử: người dùng CHỌN kiểu gõ (nhớ lại lần sau), và tool luôn ĐỌC NGƯỢC
-// ngày ra chữ ngay dưới ô nhập. Gõ sai kiểu mà ngày đó chỉ hợp lệ ở kiểu kia thì
-// tự hiểu theo kiểu kia VÀ nói rõ là đã tự đổi — không im lặng.
+// CHỈ CÒN MỘT KIỂU: MỸ, MM/DD/YYYY (chủ tool chốt 09/10/2026).
+// Nguyên văn: "chỉ lấy chuẩn cách nhập Tháng/Ngày/Năm theo Mỹ ... để các bạn bắt buộc
+// run quote phải để ngày theo định dạng Mỹ, không cần thêm định dạng ngày Việt Nam".
+// Từ 10/08 tới 09/10 có hai nút chọn kiểu gõ (Tháng/Ngày, Ngày/Tháng) và tool tự hiểu
+// theo kiểu kia khi kiểu đang chọn không hợp lệ. Nay BỎ CẢ HAI:
+//   - gõ ngày chỉ hợp lệ ở kiểu Việt (25/12/1990) → BÁO SAI, không tự đổi giúp;
+//   - lựa chọn 'DMY' người dùng từng lưu ở localStorage `tst-tinhtuoi-thutu` bị bỏ qua.
+// Thứ còn giữ làm chốt chặn: dòng ĐỌC NGƯỢC ngày ra chữ ngay dưới ô nhập. Với ngày
+// nhập nhằng (05/06/1979) đó là chỗ duy nhất sale thấy mình vừa gõ tháng 5 hay tháng 6.
 // ---------------------------------------------------------------------------
-const TT_KHOA_THUTU = 'tst-tinhtuoi-thutu';   // 'MDY' (Mỹ) | 'DMY' (Việt)
-
-function ttThuTu() {
-  try { return localStorage.getItem(TT_KHOA_THUTU) === 'DMY' ? 'DMY' : 'MDY'; } catch (e) { return 'MDY'; }
-}
-function ttDatThuTu(v) { try { localStorage.setItem(TT_KHOA_THUTU, v); } catch (e) {} }
 
 // Dựng ngày từ 3 số, trả null nếu ngày không tồn tại (31/02, 29/02 năm thường…)
 function ttDungNgay(nam, thang, ngay) {
@@ -69,18 +69,89 @@ function ttDocNgayTheo(chuoi, thuTu) {
 function ttDocNgay(chuoi) { return ttDocNgayTheo(chuoi, 'MDY'); }
 
 /**
- * Đọc theo kiểu người dùng đang chọn; nếu kiểu đó không ra ngày hợp lệ mà kiểu kia
- * ra được thì dùng kiểu kia và BÁO là đã tự đổi.
- * → { ns, tuDoi: bool, nhapNhang: bool }  ·  ns = null nếu không đọc được kiểu nào
+ * Đọc ĐÚNG kiểu Mỹ, không tự đổi.
+ * → { ns, goKieuViet }
+ *   ns         = ngày đọc được theo MM/DD/YYYY, null nếu không hợp lệ
+ *   goKieuViet = true khi kiểu Mỹ không hợp lệ NHƯNG đảo lại (DD/MM) thì hợp lệ:
+ *                gần như chắc là sale gõ ngày trước tháng sau. Chỉ dùng để viết câu
+ *                báo lỗi cho trúng, KHÔNG dùng để tính.
  */
-function ttDocNgayThongMinh(chuoi) {
-  const uu = ttThuTu(), kia = uu === 'MDY' ? 'DMY' : 'MDY';
-  const a = ttDocNgayTheo(chuoi, uu);
-  const b = ttDocNgayTheo(chuoi, kia);
-  if (a) return { ns: a, tuDoi: false, nhapNhang: !!b && b.ngay !== b.thang };
-  if (b) return { ns: b, tuDoi: true, nhapNhang: false };
-  return { ns: null, tuDoi: false, nhapNhang: false };
+function ttDocNgayMy(chuoi) {
+  const ns = ttDocNgayTheo(chuoi, 'MDY');
+  return { ns, goKieuViet: !ns && !!ttDocNgayTheo(chuoi, 'DMY') };
 }
+
+// ---------------------------------------------------------------------------
+// CHUẨN HOÁ CHUỖI ĐANG GÕ / VỪA DÁN về dạng MM/DD/YYYY (09/10/2026)
+//
+// Bản trước chỉ làm một việc: vứt hết ký tự không phải số rồi chèn "/" sau chữ số
+// thứ 2 và thứ 4. Chạy 100 ca gõ thật trong trình duyệt thì lộ ra:
+//   - gõ "5/22/1990" (không có số 0 đầu) → ô biến thành "52/21/990" → bị từ chối;
+//   - dán "5/22/1990 0:00:00" từ Excel → y như trên;
+//   - ô có maxlength=10 nên dán " 05/22/1990" hay "DOB: 05/22/1990" bị trình duyệt
+//     CẮT ĐUÔI trước khi mã kịp đọc → còn "05/22/199";
+//   - gõ thừa một chữ số (kẹt phím: 19990) thì số thừa bị nuốt IM LẶNG.
+// Nay: dấu ngăn do người gõ (/ - . dấu cách) được TÔN TRỌNG, tháng/ngày một chữ số
+// được thêm số 0, và báo lại `thua` khi có chữ số bị bỏ để dòng đọc lại lên tiếng.
+// ☠️ Hàm này KHÔNG đoán thứ tự tháng/ngày. Chỉ có đúng một ca được đổi thứ tự là
+// NĂM ĐỨNG ĐẦU (1990-05-22): dạng đó chỉ có một cách hiểu. Ngày-trước-tháng-sau
+// (25/12/1990) vẫn bị từ chối như chủ tool chốt.
+// → { chuoi, thua }
+// ---------------------------------------------------------------------------
+function ttChuanHoaGo(raw) {
+  // Chữ số "toàn chiều rộng" (bộ gõ tiếng Nhật/Trung, chép từ vài app chat) → chữ số thường
+  const s = Array.from(String(raw || ''), ch => {
+    const c = ch.charCodeAt(0);
+    return (c >= 0xFF10 && c <= 0xFF19) ? String.fromCharCode(c - 0xFEE0) : ch;
+  }).join('');
+  const nhom = s.match(/\d+/g) || [];
+  if (!nhom.length) return { chuoi: '', thua: false };
+  const haiSo = x => (x.length === 1 ? '0' + x : x);
+  const dauCuoi = /\d\D+$/.test(s);            // vừa bấm một dấu ngăn ngay sau con số
+
+  // NĂM ĐỨNG ĐẦU: 1990-05-22, 1990/5/22
+  if (nhom.length >= 3 && nhom[0].length === 4 && nhom[1].length <= 2 && nhom[2].length <= 2) {
+    return { chuoi: haiSo(nhom[1]) + '/' + haiSo(nhom[2]) + '/' + nhom[0], thua: false };
+  }
+
+  // CÓ DẤU NGĂN: 5/22/1990 · 05-22-1990 · "DOB: 05/22/1990 0:00:00"
+  // Một nhóm số có dấu ngăn đứng sau nghĩa là người gõ đã gõ XONG nhóm đó.
+  if ((nhom.length > 1 || dauCuoi) && nhom[0].length <= 2 && (nhom.length < 2 || nhom[1].length <= 2)) {
+    let ra = haiSo(nhom[0]);
+    if (nhom.length === 1) return { chuoi: ra + '/', thua: false };
+    const ngayXong = nhom.length > 2 || dauCuoi;
+    ra += '/' + (ngayXong ? haiSo(nhom[1]) : nhom[1]);
+    if (!ngayXong) return { chuoi: ra, thua: false };
+    if (nhom.length === 2) return { chuoi: ra + '/', thua: false };
+    // Sau năm còn nhóm số nữa (giờ phút của Excel) thì bỏ, không tính là gõ thừa
+    return { chuoi: ra + '/' + nhom[2].slice(0, 4), thua: nhom[2].length > 4 };
+  }
+
+  // CHỈ CÓ CHỮ SỐ (gõ liền 05221990): tự chèn "/" như trước nay
+  const so = nhom.join('');
+  const tam = so.slice(0, 8);
+  let ra = tam;
+  if (tam.length > 4) ra = tam.slice(0, 2) + '/' + tam.slice(2, 4) + '/' + tam.slice(4);
+  else if (tam.length > 2) ra = tam.slice(0, 2) + '/' + tam.slice(2);
+  return { chuoi: ra, thua: so.length > 8 };
+}
+
+// Vì sao chuỗi này KHÔNG đọc được thành ngày, để câu báo lỗi nói trúng chỗ sai.
+// Trước 09/10/2026 mọi ca đều nhận chung một câu "Ngày này không tồn tại", kể cả
+// 12/31/1899 (ngày có thật, chỉ là năm nằm ngoài khoảng tool nhận).
+// → 'dang' (chưa đúng dạng) · 'nam' (năm ngoài 1900–2100) · 'viet' (gõ ngày trước
+//   tháng sau) · 'khong-co' (đúng dạng nhưng lịch không có ngày đó, vd 02/30)
+function ttLyDoSai(chuoi) {
+  const m = String(chuoi || '').trim().match(/^(\d{1,2})\s*\/\s*(\d{1,2})\s*\/\s*(\d{4})$/);
+  if (!m) return 'dang';
+  if (+m[3] < 1900 || +m[3] > 2100) return 'nam';
+  if (ttDocNgayTheo(chuoi, 'DMY')) return 'viet';
+  return 'khong-co';
+}
+
+// Khoá so sánh "cùng một ngày": của ngày sinh đã đọc, và của một Date theo giờ máy
+const ttKhoaNs = ns => ns.nam + '-' + ns.thang + '-' + ns.ngay;
+const ttKhoaNgay = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
 
 // Sinh nhật rơi vào 29/02 mà năm đích không nhuận → lấy 28/02 (thông lệ ngành)
 function ttSinhNhatTrongNam(ns, nam) {
@@ -142,7 +213,10 @@ function ttDocLichSu() {
   try {
     const raw = localStorage.getItem(TT_KHOA_LS);
     const ds = raw ? JSON.parse(raw) : [];
-    return Array.isArray(ds) ? ds : [];
+    // Lọc dòng hỏng: một phần tử null trong mảng làm veLichSuTuoi văng lỗi NGAY lúc mở
+    // công cụ, trước khi ô nhập kịp nối sự kiện → gõ không chèn "/", bấm Tính không
+    // phản hồi, không có thông báo nào (đo 09/10/2026 với '[null]').
+    return Array.isArray(ds) ? ds.filter(r => r && typeof r === 'object') : [];
   } catch (e) { return []; }
 }
 function ttGhiLichSu(ds) {
@@ -211,20 +285,20 @@ function openTinhTuoi() {
 
         <div class="tt-label-hang">
           <label class="tt-label" for="tt-dob">Ngày sinh khách hàng</label>
-          <!-- Chọn KIỂU GÕ. Bày ra ngay cạnh ô nhập chứ không giấu trong cài đặt:
-               đây là thứ quyết định con số ra đúng hay sai. Nhớ lại cho lần sau. -->
-          <div class="tt-thutu" role="group" aria-label="Kiểu gõ ngày">
-            <button type="button" class="tt-thutu-o" data-thutu="MDY">Tháng / Ngày</button>
-            <button type="button" class="tt-thutu-o" data-thutu="DMY">Ngày / Tháng</button>
-          </div>
+          <!-- Chỉ còn kiểu Mỹ (09/10/2026). Ghi thứ tự ra bằng CHỮ ở chỗ hai nút chọn
+               kiểu từng đứng: placeholder MM/DD/YYYY biến mất ngay khi gõ ký tự đầu. -->
+          <span class="tt-kieu" id="tt-kieu">Tháng / Ngày / Năm</span>
         </div>
         <div class="tt-row">
           <div class="tt-input-wrap">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
+            <!-- ☠️ KHÔNG đặt maxlength: trình duyệt cắt đuôi chuỗi dán TRƯỚC khi mã đọc được
+                 (dán "DOB: 05/22/1990" còn "05/22/199") và chặn luôn việc gõ ngày mới khi
+                 ô còn ngày cũ. Độ dài do ttChuanHoaGo giữ. -->
             <input id="tt-dob" class="tt-input" type="text" inputmode="numeric" autocomplete="off"
-                   placeholder="MM/DD/YYYY" maxlength="10" aria-describedby="tt-doclai">
+                   placeholder="MM/DD/YYYY" aria-describedby="tt-kieu tt-doclai">
           </div>
           <button class="btn btn-primary tt-btn" id="tt-tinh">Tính</button>
         </div>
@@ -245,13 +319,17 @@ function openTinhTuoi() {
             <span class="tt-o-nhan">Tuổi bảo hiểm</span>
             <span class="tt-o-so" id="tt-tuoibh">—</span>
           </div>
-          <!-- Ngày tăng tuổi: sale cần biết còn bao lâu nữa khách nhảy bậc phí.
-               Đây là ngày ĐẦU TIÊN khách được tính tuổi mới (khác bản forum — xem
-               chú thích ở tinhTuoiBaoHiem). -->
-          <div class="tt-o tt-o-ngay" id="tt-o-ngay">
-            <span class="tt-o-nhan">Ngày tăng tuổi</span>
-            <span class="tt-o-ngay-so" id="tt-ngaytang">—</span>
-            <span class="tt-o-conlai" id="tt-conlai"></span>
+          <!-- SẮP TĂNG TUỔI: chỉ hiện khi còn từ TT_BAO_TRUOC (60) ngày trở xuống.
+               Chủ tool 09/10/2026: "nếu KH đã tăng tuổi rồi thì thôi, không cần thông
+               báo, còn khi nào tầm 60 ngày tức 2 tháng sẽ tăng, hãy cho ô này thông báo
+               rõ nét hơn". Trước đó ô này LUÔN hiện, kể cả "Còn 365 ngày" ngay sau khi
+               khách vừa lên tuổi: một con số không ai cần mà chiếm 1/3 hàng kết quả.
+               Ngày ghi ở đây là ngày ĐẦU TIÊN khách được tính tuổi mới (khác bản forum,
+               xem chú thích ở tinhTuoiBaoHiem). -->
+          <div class="tt-o tt-o-ngay" id="tt-o-ngay" hidden role="status">
+            <span class="tt-o-nhan">Sắp tăng tuổi</span>
+            <span class="tt-o-ngay-so" id="tt-sap-con">—</span>
+            <span class="tt-o-conlai" id="tt-sap-ngay"></span>
           </div>
         </div>
       </section>
@@ -274,37 +352,93 @@ function openTinhTuoi() {
   const oDob = document.getElementById('tt-dob');
   const nutTinh = document.getElementById('tt-tinh');
 
-  // Tự chèn dấu "/" khi gõ — bớt một chỗ gõ sai định dạng
+  ttDangHien = null;            // màn vừa dựng lại, chưa bày kết quả nào
+
   oDob.addEventListener('input', () => {
-    const so = oDob.value.replace(/\D/g, '').slice(0, 8);
-    let ra = so;
-    if (so.length > 4) ra = `${so.slice(0, 2)}/${so.slice(2, 4)}/${so.slice(4)}`;
-    else if (so.length > 2) ra = `${so.slice(0, 2)}/${so.slice(2)}`;
-    oDob.value = ra;
-    docLaiNgay();
+    let thua = false;
+    const viTri = oDob.selectionStart;
+    if (viTri !== null && viTri < oDob.value.length) {
+      // ĐANG SỬA Ở GIỮA (đổi một số của tháng hay ngày): KHÔNG dựng lại cả chuỗi.
+      // Dựng lại là các số phía sau dồn lệch và con trỏ nhảy về cuối: sửa "05" thành
+      // "12" ra "02/21/9906" (đo 09/10/2026). Chỉ bỏ ký tự lạ và giữ nguyên con trỏ;
+      // đúng sai để bộ đọc ngày phán (nó nhận cả tháng/ngày một chữ số).
+      const truoc = oDob.value.slice(0, viTri).replace(/[^\d/]/g, '');
+      const sau = oDob.value.slice(viTri).replace(/[^\d/]/g, '');
+      if ((truoc + sau).split('/').length === 3) {
+        oDob.value = truoc + sau;
+        oDob.setSelectionRange(truoc.length, truoc.length);
+      } else {
+        // Vừa xoá mất (hoặc gõ thêm) một dấu "/": khung tháng/ngày/năm vỡ, "0522/1990"
+        // không đọc được. Dựng lại từ các chữ số và đặt con trỏ sau đúng số chữ số mà
+        // nó đang đứng sau (bài chạy lại 100 ca bắt được chỗ này ở bản sửa đầu).
+        const soTruoc = truoc.replace(/\D/g, '').length;
+        const moi = ttChuanHoaGo((truoc + sau).replace(/\D/g, '')).chuoi;
+        let dem = 0, cho = 0;
+        while (cho < moi.length && dem < soTruoc) { if (/\d/.test(moi[cho])) dem++; cho++; }
+        oDob.value = moi;
+        oDob.setSelectionRange(cho, cho);
+      }
+    } else {
+      const kq = ttChuanHoaGo(oDob.value);
+      oDob.value = kq.chuoi;
+      thua = kq.thua;
+    }
+    sauKhiODoi(thua);
   });
-  oDob.addEventListener('keydown', e => { if (e.key === 'Enter') nutTinh.click(); });
+
+  // Việc phải làm sau MỌI lần chữ trong ô đổi (gõ hay dán)
+  function sauKhiODoi(thua) {
+    docLaiNgay(thua);
+    // Ngày trong ô không còn là ngày của kết quả đang bày → cất kết quả. Trước đây
+    // sửa ngày xong mà chưa bấm Tính thì dòng đọc lại nói ngày MỚI còn hai ô tuổi và
+    // ô "Sắp tăng tuổi" vẫn là của ngày CŨ, đứng ngay cạnh nhau.
+    if (ttDangHien) {
+      const ns = ttDocNgayMy(oDob.value).ns;
+      if (!ns || ttKhoaNs(ns) !== ttDangHien.khoa) ttXoaKetQua();
+    }
+  }
+
+  // DÁN CẢ MỘT NGÀY thì THAY hết ô, dù con trỏ đang đứng ở đâu. Không có đoạn này,
+  // dán vào cuối một ô đang có ngày cũ sẽ nối đuôi thành 16 chữ số, 8 số sau bị bỏ và
+  // ô vẫn là ngày của khách trước. Dán một mẩu ngắn (vài chữ số) thì để trình duyệt
+  // chèn như thường.
+  oDob.addEventListener('paste', e => {
+    const chu = (e.clipboardData && e.clipboardData.getData('text')) || '';
+    const kq = ttChuanHoaGo(chu);
+    if (kq.chuoi.replace(/[^0-9]/g, '').length < 8) return;
+    e.preventDefault();
+    oDob.value = kq.chuoi;
+    sauKhiODoi(kq.thua);
+  });
+
+  // VÀO Ô LÀ BÔI ĐEN HẾT: gõ hay dán ngày của khách kế tiếp sẽ THAY ngày cũ. Trước
+  // đây ô còn ngày khách trước thì gõ tiếp không vào, bấm Tính ra lại khách cũ mà
+  // không báo gì. Bấm chuột lần nữa vào ô đang mở thì đặt con trỏ như thường.
+  let vuaVao = false;
+  oDob.addEventListener('focus', () => { if (oDob.value) { oDob.select(); vuaVao = true; } });
+  oDob.addEventListener('mouseup', e => { if (vuaVao) { e.preventDefault(); vuaVao = false; } });
+  oDob.addEventListener('blur', () => { vuaVao = false; });
+  oDob.addEventListener('keydown', e => {
+    vuaVao = false;
+    // e.repeat: giữ phím Enter là trình duyệt bắn liên tục, mỗi phát thêm một dòng lịch
+    // sử và một lượt ghi đo lường (đo được 6 dòng cho một lần giữ phím).
+    if (e.key === 'Enter' && !e.repeat) nutTinh.click();
+  });
   nutTinh.addEventListener('click', bamTinh);
 
-  // Dải chọn kiểu gõ ngày
-  const daiThuTu = document.querySelector('.tt-thutu');
-  const veThuTu = () => {
-    const t = ttThuTu();
-    daiThuTu.querySelectorAll('[data-thutu]').forEach(b => {
-      b.classList.toggle('dang-chon', b.dataset.thutu === t);
-      b.setAttribute('aria-pressed', b.dataset.thutu === t ? 'true' : 'false');
-    });
-    oDob.placeholder = t === 'DMY' ? 'DD/MM/YYYY' : 'MM/DD/YYYY';
-    docLaiNgay();
-  };
-  daiThuTu.addEventListener('click', e => {
-    const b = e.target.closest('[data-thutu]');
-    if (!b) return;
-    ttDatThuTu(b.dataset.thutu);
-    veThuTu();
-    if (!document.getElementById('tt-ketqua').hidden) bamTinh();   // tính lại theo kiểu mới
-  });
-  veThuTu();
+  // TAB ĐỂ QUA ĐÊM: con số trên màn hình là của HÔM QUA ("Còn 1 ngày" vẫn hiện sau khi
+  // khách đã lên tuổi). Quay lại tab, cửa sổ được chọn lại, hoặc mỗi phút một lần: thấy
+  // đã sang ngày khác thì tính lại và vẽ lại, không ghi thêm lịch sử hay đo lường.
+  if (window.__ttQuaNgay) {
+    document.removeEventListener('visibilitychange', window.__ttQuaNgay);
+    window.removeEventListener('focus', window.__ttQuaNgay);
+    clearInterval(window.__ttQuaNgayHen);
+  }
+  window.__ttQuaNgay = ttKiemQuaNgay;
+  document.addEventListener('visibilitychange', ttKiemQuaNgay);
+  window.addEventListener('focus', ttKiemQuaNgay);
+  window.__ttQuaNgayHen = setInterval(ttKiemQuaNgay, 60000);
+
   document.getElementById('tt-xoa-ls').addEventListener('click', async () => {
     const ds = ttDocLichSu();
     if (!ds.length) return;
@@ -327,64 +461,121 @@ function openTinhTuoi() {
 const TT_THANG = ['tháng 1', 'tháng 2', 'tháng 3', 'tháng 4', 'tháng 5', 'tháng 6',
                   'tháng 7', 'tháng 8', 'tháng 9', 'tháng 10', 'tháng 11', 'tháng 12'];
 
-function docLaiNgay() {
+// Câu báo ngắn cho dòng đọc lại, theo đúng lý do (xem ttLyDoSai)
+function ttCauBaoSai(chuoi) {
+  const lyDo = ttLyDoSai(chuoi);
+  if (lyDo === 'viet') return `⚠️ Không có tháng ${+chuoi.split('/')[0]}. Gõ tháng trước, ngày sau.`;
+  if (lyDo === 'nam') return '⚠️ Năm phải từ 1900 tới 2100.';
+  if (lyDo === 'dang') return '⚠️ Chưa đúng dạng MM/DD/YYYY.';
+  return '⚠️ Ngày này không tồn tại.';
+}
+
+// `thua` = true khi ttChuanHoaGo vừa phải bỏ bớt chữ số gõ thừa
+function docLaiNgay(thua) {
   const o = document.getElementById('tt-doclai');
   if (!o) return;
-  const { ns, tuDoi } = ttDocNgayThongMinh(document.getElementById('tt-dob').value);
-  o.classList.remove('ok', 'canh-bao');
-  if (!ns) { o.textContent = ''; return; }
-  // Chữ ngắn gọn (chủ tool 10/08/2026) — bỏ "Tức ngày…", giữ đúng phần có ích
-  o.textContent = (tuDoi ? '⚠️ Hiểu là ' : '→ ') +
-    `${ns.ngay} ${TT_THANG[ns.thang - 1]}, ${ns.nam}`;
-  o.classList.add(tuDoi ? 'canh-bao' : 'ok');
+  const chuoi = document.getElementById('tt-dob').value;
+  const { ns } = ttDocNgayMy(chuoi);
+  o.classList.remove('ok', 'canh-bao', 'can-xem');
+  if (!ns) {
+    // THÁNG SAI THÌ BÁO NGAY, không chờ gõ hết: gõ liền "5221990" (quên số 0 đầu) hay
+    // "25121990" (ngày trước tháng sau) đều lộ ra ở hai chữ số đầu. Trước đây phải gõ
+    // xong, bấm Tính, mới nhận một hộp báo lỗi.
+    const thangGo = chuoi.match(/^(\d{2})\//);
+    if (thangGo && (+thangGo[1] > 12 || +thangGo[1] === 0)) {
+      o.textContent = `⚠️ Không có tháng ${+thangGo[1]}. Gõ tháng trước, ngày sau.`;
+      o.classList.add('canh-bao');
+      return;
+    }
+    // Còn lại chỉ lên tiếng khi đã gõ ĐỦ 8 chữ số (hoặc đủ 10 ký tự); đang gõ dở mà
+    // báo sai là làm phiền.
+    if (chuoi.length < 10 && chuoi.replace(/\D/g, '').length < 8) { o.textContent = ''; return; }
+    o.textContent = ttCauBaoSai(chuoi);
+    o.classList.add('canh-bao');
+    return;
+  }
+  const docRa = `${ns.ngay} ${TT_THANG[ns.thang - 1]}, ${ns.nam}`;
+  if (thua) {
+    // Kẹt phím (05/22/19990): số thừa bị bỏ, ô còn 05/22/1999 là một ngày HỢP LỆ khác
+    // hẳn ý người gõ. Không đoán được họ định gõ gì, nhưng phải nói ra là có số bị bỏ.
+    o.textContent = `⚠️ Gõ thừa chữ số. Đang hiểu là ${docRa}.`;
+    o.classList.add('canh-bao');
+    return;
+  }
+  // Chữ ngắn gọn (chủ tool 10/08/2026), bỏ "Tức ngày…", giữ đúng phần có ích
+  o.textContent = `→ ${docRa}`;
+  // NGÀY ĐỌC ĐƯỢC CẢ HAI CHIỀU (05/06 là 6 tháng 5 hay 5 tháng 6): tool không thể biết
+  // sale gõ nhầm ngày trước tháng sau. 132/365 ngày trong năm rơi vào vùng này, và
+  // 42% số lần nhầm làm đổi tuổi bảo hiểm (đo 09/10/2026). Dòng này là chốt chặn duy
+  // nhất nên cho nó nổi hẳn lên (nền vàng) đúng ở những ngày đó.
+  o.classList.add(ns.ngay <= 12 && ns.ngay !== ns.thang ? 'can-xem' : 'ok');
+}
+
+const TT_BAO_TRUOC = 60;    // còn từ ngần này ngày trở xuống mới hiện ô "Sắp tăng tuổi"
+const TT_GAN_KE = 30;       // còn từ ngần này ngày trở xuống thì ô đó tô đậm hẳn
+
+// Ngày vừa gõ không dùng được → XOÁ con số của lần tính trước khỏi màn hình.
+// ☠️ Trước 09/10/2026 chỗ này chỉ đặt `oKq.hidden = true`, và nó CHƯA BAO GIỜ ẩn được
+// gì: .tt-ketqua có `display: grid` (selector class) nên thắng thuộc tính hidden. Hậu
+// quả đo được: gõ ngày sai, hộp báo lỗi hiện lên, nhưng hai ô tuổi vẫn bày số của khách
+// TRƯỚC ngay cạnh ngày mới. Không đổi sang ẩn hẳn khối (người dùng đã quen thấy hai ô
+// có dấu gạch ngay từ lúc mở công cụ), chỉ trả số về dấu gạch và cất ô cảnh báo.
+// Kết quả ĐANG BÀY trên màn hình là của ngày sinh nào, tính vào ngày nào.
+// null = hai ô tuổi đang là dấu gạch. Dùng để: (1) cất kết quả khi ô nhập đổi sang
+// ngày khác, (2) tính lại khi tab để qua đêm.
+let ttDangHien = null;
+
+function ttXoaKetQua() {
+  ttDangHien = null;
+  document.getElementById('tt-tuoithat').textContent = '—';
+  document.getElementById('tt-tuoibh').textContent = '—';
+  document.getElementById('tt-giaithich').textContent = '';
+  document.getElementById('tt-o-ngay').hidden = true;
+  document.getElementById('tt-ketqua').classList.remove('co-sap-tang');
+  capChieuCaoLichSu();        // ô cảnh báo vừa cất → cột trái có thể thấp đi, đo lại
 }
 
 function bamTinh() {
   const oDob = document.getElementById('tt-dob');
-  const { ns, tuDoi } = ttDocNgayThongMinh(oDob.value);
+  const { ns, goKieuViet } = ttDocNgayMy(oDob.value);
   const oKq = document.getElementById('tt-ketqua');
   if (!ns) {
-    oKq.hidden = true;
-    const kieu = ttThuTu() === 'DMY' ? 'DD/MM/YYYY — ngày trước, tháng sau' : 'MM/DD/YYYY — tháng trước, ngày sau';
+    ttXoaKetQua();
     updateStatus('Chưa đọc được ngày sinh');
-    showAppAlert(`Đang nhận kiểu ${kieu}. Ngày vừa gõ không hợp lệ ở cả hai kiểu.\n\n` +
-      'Đổi kiểu gõ bằng hai nút ngay trên ô nhập.',
+    // Gõ kiểu Việt (ngày trước) thì nói TRÚNG lỗi đó. KHÔNG tự đảo lại giúp: chủ tool
+    // muốn sale quen tay kiểu Mỹ, vì hệ thống run quote của hãng chỉ nhận kiểu đó.
+    showAppAlert(goKieuViet
+      ? `Ô này chỉ nhận dạng MM/DD/YYYY, tháng trước rồi tới ngày.\n\n"${oDob.value}" có tháng ${+oDob.value.split('/')[0]}, không có tháng đó. Nếu ý là ngày ${+oDob.value.split('/')[0]} tháng ${+oDob.value.split('/')[1]} thì gõ lại: ${oDob.value.split('/')[1]}/${oDob.value.split('/')[0]}/${oDob.value.split('/')[2]}`
+      : (ttLyDoSai(oDob.value) === 'nam'
+          ? 'Năm sinh phải nằm trong khoảng 1900 tới 2100.'
+          : 'Ô này chỉ nhận dạng MM/DD/YYYY, tháng trước rồi tới ngày.\n\nNgày vừa gõ không tồn tại hoặc chưa đủ 8 chữ số.'),
       { title: 'Chưa đọc được ngày sinh', tone: 'danger' });
     return;
   }
-  if (tuDoi) {
-    // Tự đổi kiểu thì phải NÓI RA. Im lặng đổi là loại lỗi tệ nhất: số vẫn ra, và sai.
-    updateStatus(`Đã hiểu theo kiểu ${ttThuTu() === 'MDY' ? 'Ngày/Tháng' : 'Tháng/Ngày'}`);
-  }
   const kq = tinhTuoiBaoHiem(ns);
   if (kq.tuoiThat < 0) {
-    oKq.hidden = true;
+    ttXoaKetQua();
     showAppAlert('Ngày sinh đang ở tương lai.', { title: 'Ngày sinh không hợp lệ', tone: 'danger' });
     return;
   }
 
-  document.getElementById('tt-tuoithat').textContent = kq.tuoiThat;
-  document.getElementById('tt-tuoibh').textContent = kq.tuoiBaoHiem;
-  // Hiện ngày theo ĐÚNG kiểu người dùng đang gõ — bày ra kiểu khác là mời họ đọc nhầm
-  const dd = d => {
-    const t = String(d.getDate()).padStart(2, '0'), th = String(d.getMonth() + 1).padStart(2, '0');
-    return ttThuTu() === 'DMY' ? `${t}/${th}/${d.getFullYear()}` : `${th}/${t}/${d.getFullYear()}`;
-  };
-  const conNgay = Math.round((kq.mocTiepTheo - kq.homNay) / 86400000);
-  document.getElementById('tt-ngaytang').textContent = dd(kq.mocTiepTheo);
-  const oCon = document.getElementById('tt-conlai');
-  oCon.textContent = conNgay === 0 ? 'Hôm nay đã lên tuổi' : `Còn ${conNgay} ngày`;
-  // Dưới 30 ngày thì đổi màu cảnh báo — sale nên chốt trước khi khách nhảy bậc phí
-  document.getElementById('tt-o-ngay').classList.toggle('gan-ke', conNgay <= 30);
-  // Ngắn gọn: giữ đúng LÝ DO (mốc 6 tháng) mà bỏ hết chữ đệm
-  document.getElementById('tt-giaithich').textContent = kq.tuoiBaoHiem === kq.tuoiThat
-    ? 'Chưa qua sinh nhật 6 tháng → giữ nguyên'
-    : 'Qua sinh nhật hơn 6 tháng → +1 tuổi';
-  oKq.hidden = false;
+  const conNgay = ttVeKetQua(ns, kq);
+
+  // Tính xong thì bôi đen ngày vừa tính: gõ ngày của khách kế tiếp là THAY luôn, khỏi
+  // phải xoá tay. Trên điện thoại không tự đưa con trỏ vào ô, vì bàn phím bật lên sẽ
+  // che mất kết quả vừa ra; ở đó ô tự bôi đen khi người dùng chạm vào (sự kiện focus).
+  if (document.activeElement === oDob || !window.matchMedia('(pointer: coarse)').matches) {
+    oDob.focus();
+    oDob.select();
+  }
 
   const ds = ttDocLichSu();
   ds.unshift({
     luc: new Date().toLocaleTimeString('vi-VN'),
+    // Mốc thời gian đầy đủ (từ 09/10/2026): cột "Lúc" chỉ ghi giờ nên một dòng tính từ
+    // 52 ngày trước trông y như vừa tính, trong khi tuổi bảo hiểm của khách đã đổi.
+    // Có `ts` thì dòng khác ngày hiện NGÀY thay cho giờ (xem ttLucHien).
+    ts: Date.now(),
     // Ghi dạng KHÔNG NHẬP NHẰNG ("2 thg 7, 1998"), đừng ghi "02/07/1998": đọc lại
     // vào hôm sau thì chính mình cũng không biết là ngày 2 tháng 7 hay 7 tháng 2.
     dob: `${ns.ngay} thg ${ns.thang}, ${ns.nam}`,
@@ -407,13 +598,71 @@ function bamTinh() {
       tuoi_bh: kq.tuoiBaoHiem,
       ngay_tang: `${kq.mocTiepTheo.getFullYear()}-${String(kq.mocTiepTheo.getMonth() + 1).padStart(2, '0')}-${String(kq.mocTiepTheo.getDate()).padStart(2, '0')}`,
       con_ngay: conNgay,
-      kieu_go: ttThuTu()
+      kieu_go: 'MDY'                // chỉ còn kiểu Mỹ từ 09/10/2026, giữ trường cho bảng đo lường cũ
     });
   }
 
   veLichSuTuoi();
   capChieuCaoLichSu();          // khối kết quả vừa hiện ra → cột trái cao lên, đo lại
   updateStatus(`Tuổi bảo hiểm: ${kq.tuoiBaoHiem}`);
+}
+
+// VẼ kết quả của một ngày sinh ra màn hình. Tách khỏi bamTinh (09/10/2026) để lúc tab
+// để qua đêm có thể vẽ lại mà KHÔNG ghi thêm lịch sử hay đo lường. → số ngày còn lại
+// tới mốc đổi tuổi.
+function ttVeKetQua(ns, kq) {
+  const oKq = document.getElementById('tt-ketqua');
+  ttDangHien = { khoa: ttKhoaNs(ns), ns: ns, ngayTinh: ttKhoaNgay(kq.homNay) };
+  document.getElementById('tt-tuoithat').textContent = kq.tuoiThat;
+  document.getElementById('tt-tuoibh').textContent = kq.tuoiBaoHiem;
+  // Ngày hiện ra cũng theo kiểu Mỹ, cùng kiểu với ô nhập: bày kiểu khác là mời đọc nhầm
+  const dd = d => {
+    const t = String(d.getDate()).padStart(2, '0'), th = String(d.getMonth() + 1).padStart(2, '0');
+    return `${th}/${t}/${d.getFullYear()}`;
+  };
+  const conNgay = Math.round((kq.mocTiepTheo - kq.homNay) / 86400000);
+  // Ô "Sắp tăng tuổi": còn xa (vừa lên tuổi xong, còn cả năm) thì ẨN HẲN; vào tầm
+  // TT_BAO_TRUOC ngày mới hiện, và hiện cho ra hiện: nói số ngày còn lại, tuổi mới,
+  // và ngày bắt đầu tính tuổi mới. Tuổi mới = tuổi bảo hiểm hiện tại + 1, đúng theo
+  // định nghĩa của `mocTiepTheo` (ngày đầu tiên con số tuổi bảo hiểm đổi).
+  const oSap = document.getElementById('tt-o-ngay');
+  const sapTang = conNgay <= TT_BAO_TRUOC;
+  oSap.hidden = !sapTang;
+  oKq.classList.toggle('co-sap-tang', sapTang);     // 3 cột khi có ô này, 2 cột khi không
+  if (sapTang) {
+    document.getElementById('tt-sap-con').textContent =
+      conNgay <= 0 ? 'Hôm nay' : conNgay === 1 ? 'Còn 1 ngày' : `Còn ${conNgay} ngày`;
+    document.getElementById('tt-sap-ngay').textContent =
+      `Lên ${kq.tuoiBaoHiem + 1} tuổi từ ${dd(kq.mocTiepTheo)}`;
+    oSap.classList.toggle('gan-ke', conNgay <= TT_GAN_KE);
+  }
+  // Ngắn gọn: giữ đúng LÝ DO (mốc 6 tháng) mà bỏ hết chữ đệm
+  document.getElementById('tt-giaithich').textContent = kq.tuoiBaoHiem === kq.tuoiThat
+    ? 'Chưa qua sinh nhật 6 tháng → giữ nguyên'
+    : 'Qua sinh nhật hơn 6 tháng → +1 tuổi';
+  oKq.hidden = false;
+  return conNgay;
+}
+
+// Tab mở từ hôm trước: đã sang ngày khác thì tính lại kết quả đang bày và vẽ lại.
+function ttKiemQuaNgay() {
+  if (!ttDangHien) return;
+  if (!document.getElementById('tt-ketqua')) { ttDangHien = null; return; }   // đã chuyển sang công cụ khác
+  if (ttKhoaNgay(new Date()) === ttDangHien.ngayTinh) return;
+  const ns = ttDangHien.ns;
+  const kq = tinhTuoiBaoHiem(ns);
+  if (kq.tuoiThat < 0) { ttXoaKetQua(); return; }
+  ttVeKetQua(ns, kq);
+  capChieuCaoLichSu();
+}
+
+// Cột "Lúc" của lịch sử: dòng tính HÔM NAY hiện giờ, dòng tính ngày khác hiện NGÀY.
+// Dòng lưu trước 09/10/2026 không có `ts` nên không biết ngày: giữ nguyên giờ như cũ.
+function ttLucHien(r) {
+  if (!r.ts) return r.luc || '';
+  const d = new Date(r.ts), nay = new Date();
+  if (ttKhoaNgay(d) === ttKhoaNgay(nay)) return r.luc || '';
+  return d.getDate() + ' thg ' + (d.getMonth() + 1) + (d.getFullYear() !== nay.getFullYear() ? ', ' + d.getFullYear() : '');
 }
 
 // Kẹp chiều cao danh sách lịch sử = đúng chiều cao cột trái (chủ tool 10/08/2026).
@@ -454,7 +703,7 @@ function veLichSuTuoi() {
     </div>
     ${ds.map(r => `
       <div class="tt-ls-hang">
-        <span>${escapeHtml(r.luc)}</span>
+        <span>${escapeHtml(ttLucHien(r))}</span>
         <span>${escapeHtml(r.dob)}</span>
         <span class="tt-ls-tuoi">${escapeHtml(String(r.bh))}</span>
       </div>`).join('')}

@@ -7,13 +7,17 @@
     "v": "2",
     "bam": "5fcb6ef8f994"
   },
+  "gopy.css": {
+    "v": "2",
+    "bam": "3d265f4d82cd"
+  },
   "js/animations.js": {
     "v": "4",
     "bam": "78d5c3a552ef"
   },
   "js/brochure.js": {
-    "v": "32",
-    "bam": "e62d0d1fe35a"
+    "v": "34",
+    "bam": "17aeb041261b"
   },
   "js/core.js": {
     "v": "50",
@@ -23,9 +27,13 @@
     "v": "3",
     "bam": "b0b00e246f9a"
   },
+  "js/gopy.js": {
+    "v": "2",
+    "bam": "124997d5fa2a"
+  },
   "js/main.js": {
-    "v": "22",
-    "bam": "be3ac91df418"
+    "v": "24",
+    "bam": "5bfd9997ae5e"
   },
   "js/namecard.js": {
     "v": "6",
@@ -40,40 +48,40 @@
     "bam": "60bca9fe50ff"
   },
   "js/portal/members.js": {
-    "v": "66",
-    "bam": "84fdb8b625b8"
+    "v": "68",
+    "bam": "7154db10bb23"
   },
   "js/portal/videos.js": {
     "v": "2",
     "bam": "9c8798add265"
   },
   "js/proposal.js": {
-    "v": "47",
-    "bam": "b95b90b2dfc0"
+    "v": "48",
+    "bam": "3fe9bc61d565"
   },
   "js/sosanh.js": {
     "v": "12",
     "bam": "97006a54c6c7"
   },
   "js/tinhphi.js": {
-    "v": "18",
-    "bam": "964f16e7b120"
+    "v": "19",
+    "bam": "917fd69edf13"
   },
   "js/tinhtuoi.js": {
-    "v": "13",
-    "bam": "e6d5078d41ac"
+    "v": "16",
+    "bam": "3a7467f4c147"
   },
   "js/ui-dialog.js": {
     "v": "3",
     "bam": "42e3b54ad49d"
   },
   "portal.css": {
-    "v": "90",
-    "bam": "2ecc16a5d946"
+    "v": "92",
+    "bam": "2cb5a323a8a4"
   },
   "style.css": {
-    "v": "117",
-    "bam": "62a1f1da417f"
+    "v": "121",
+    "bam": "f23a5a877eb1"
   },
   "vendor/gsap.min.js": {
     "v": "3.15.0",

@@ -1,0 +1,149 @@
+/* ==========================================================================
+   HÒM THƯ GÓP Ý — nút tròn nổi góc dưới phải + hộp gõ  (17/09/2026)
+   Đi kèm `js/gopy.js`. Chủ tool chốt: "vào bất kì trang nào cũng có".
+   --------------------------------------------------------------------------
+   ☠️ FILE RIÊNG, KHÔNG nhét vào style.css hay portal.css — đúng bài học của
+   `dropdown.css`: trang tool nạp style.css, các trang portal nạp portal.css,
+   HAI FILE KHÔNG CHIA SẺ GÌ. Nhét riêng từng bên thì sửa một bên quên bên kia.
+   → Chỉ dùng biến token có ở CẢ HAI file (--surface, --border, --text, --brand,
+     --text-2, --surface-3, --brand-soft, --shadow-lg, --r-md, --dur, --ease…).
+     Dùng biến chỉ có một bên là hỏng lặng lẽ ở bên kia.
+
+   ☠️ `--dock-h` (thanh thao tác bám đáy) CHỈ tồn tại trong style.css và CHỈ ở
+   @media (max-width: 900px). Các trang portal không có nó. Vì vậy mọi chỗ tính
+   khoảng cách đáy đều phải viết `var(--dock-h, 0px)` — thiếu giá trị dự phòng
+   thì `calc()` thành không hợp lệ và trình duyệt VỨT CẢ DÒNG (bài học `5ap`),
+   nút sẽ rơi về đáy màn hình đè lên thanh thao tác trên điện thoại.
+   ========================================================================== */
+
+/* --- Nút tròn nổi ---------------------------------------------------------- */
+.gopy-nut {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--dock-h, 0px) + 20px);
+  z-index: 100;                 /* trên nội dung; DƯỚI modal (500) và hộp thoại (900) */
+  width: 52px; height: 52px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--brand);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(17, 20, 32, 0.18), 0 2px 6px rgba(17, 20, 32, 0.10);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.gopy-nut:hover { transform: translateY(-2px); box-shadow: 0 10px 26px rgba(17, 20, 32, 0.24); }
+.gopy-nut:focus-visible { outline: none; box-shadow: 0 0 0 4px var(--brand-ring); }
+.gopy-nut svg { width: 23px; height: 23px; }
+/* Đang mở hộp thì nút đổi thành dấu X — một nút vừa là đường VÀO vừa là đường RA */
+.gopy-nut[aria-expanded="true"] { background: var(--surface-3); color: var(--text); }
+
+/* --- Hộp gõ góp ý ---------------------------------------------------------- */
+.gopy-hop {
+  position: fixed;
+  right: 20px;
+  bottom: calc(var(--dock-h, 0px) + 84px);   /* 52 nút + 20 lề đáy + 12 khe */
+  z-index: 800;                 /* trên modal (500) để không bị che; dưới hộp thoại (900) */
+  width: min(360px, calc(100vw - 40px));
+  display: flex; flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg, 14px);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.gopy-hop[hidden] { display: none; }
+
+/* Chỉ còn tiêu đề — chủ tool bỏ dòng mô tả "ai đọc được" ngày 17/09/2026.
+   Hộp KHÔNG hứa gì với người gửi, nên không có gì để sai lời.
+   ☠️ Thêm lại một câu kiểu "chỉ … đọc được" là biến nó thành LỜI HỨA và phải khớp
+   đúng policy trong supabase/gopy.sql (hiện: chỉ is_super_admin() đọc). Rule cho
+   thẻ <p> giữ lại sẵn ở đây cho lần đó, hiện không có thẻ nào dùng. */
+.gopy-dau { padding: 14px 16px 10px; }
+.gopy-dau h3 {
+  margin: 0; font-size: 15px; font-weight: 800; color: var(--text); letter-spacing: -0.2px;
+}
+.gopy-dau p { margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--text-2); }
+
+.gopy-than { padding: 0 16px 12px; }
+.gopy-than textarea {
+  width: 100%; min-height: 104px; max-height: 40vh; resize: vertical;
+  padding: 10px 12px;
+  font-family: inherit; font-size: 14px; line-height: 1.5;
+  color: var(--text); background: var(--surface-2, var(--surface));
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.gopy-than textarea::placeholder { color: var(--text-3, var(--text-2)); }
+.gopy-than textarea:focus {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-ring);
+}
+
+/* --- Ba ô của nút Request (09/10/2026) --------------------------------------
+   Nhãn đứng TRÊN ô (placeholder mất ngay khi gõ, người quay lại sửa không còn biết
+   ô nào là ô nào). Ô một dòng cùng kiểu với ô nhiều dòng. */
+.gopy-nhan { display: block; margin: 10px 0 5px; font-size: 12.5px; font-weight: 700; color: var(--text-2); }
+.gopy-nhan:first-child { margin-top: 0; }
+.gopy-than input, .gopy-than textarea { box-sizing: border-box; display: block; }
+.gopy-than input {
+  width: 100%; height: 40px; padding: 0 12px;
+  font-family: inherit; font-size: 14px;
+  color: var(--text); background: var(--surface-2, var(--surface));
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.gopy-than input::placeholder { color: var(--text-3, var(--text-2)); }
+.gopy-than input:focus {
+  outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-ring);
+}
+/* Hộp ba ô cao hơn bản một ô: trên màn thấp (laptop 768, điện thoại có bàn phím) không
+   được chui ra ngoài mép trên. Hộp bị chặn chiều cao, phần thân tự cuộn, hàng nút Gửi
+   luôn nằm trong tầm nhìn. Dòng vh là dự phòng cho trình duyệt chưa hiểu dvh. */
+.gopy-hop {
+  max-height: calc(100vh - var(--dock-h, 0px) - 100px);
+  max-height: calc(100dvh - var(--dock-h, 0px) - 100px);
+}
+.gopy-dau, .gopy-chan, .gopy-bao { flex-shrink: 0; }
+.gopy-than { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-top: 3px; }
+
+.gopy-chan {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 16px 14px;
+}
+.gopy-dem { flex: 1; font-size: 12px; color: var(--text-2); }
+.gopy-dem.qua { color: var(--danger, #d64545); font-weight: 700; }
+
+.gopy-gui {
+  padding: 9px 16px;
+  border: none; border-radius: var(--r-md);
+  background: var(--brand); color: #fff;
+  font-family: inherit; font-size: 13.5px; font-weight: 700;
+  cursor: pointer;
+  transition: opacity var(--dur) var(--ease);
+}
+.gopy-gui:hover { opacity: .92; }
+.gopy-gui:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Chỉ dùng để báo LỖI hoặc xác nhận đã gửi — không kể lể từng bước */
+.gopy-bao {
+  margin: 0 16px 14px; padding: 9px 12px;
+  border-radius: var(--r-md); font-size: 13px; line-height: 1.45;
+}
+.gopy-bao[hidden] { display: none; }
+.gopy-bao.ok  { background: var(--brand-soft); color: var(--brand); }
+.gopy-bao.loi { background: var(--danger-soft, #fdecec); color: var(--danger, #d64545); }
+
+/* --- Màn hẹp: nút nhỏ lại, hộp trải gần hết bề ngang ------------------------ */
+@media (max-width: 560px) {
+  .gopy-nut { right: 14px; width: 48px; height: 48px; }
+  .gopy-hop {
+    right: 14px; left: 14px; width: auto;
+    bottom: calc(var(--dock-h, 0px) + 74px);
+  }
+  .gopy-hop { max-height: calc(100vh - var(--dock-h, 0px) - 90px); max-height: calc(100dvh - var(--dock-h, 0px) - 90px); }
+  /* 16px: nhỏ hơn là iPhone tự phóng to cả trang khi chạm vào ô */
+  .gopy-than input, .gopy-than textarea { font-size: 16px; }
+  .gopy-than input { height: 44px; }
+  .gopy-gui { min-height: 44px; padding-left: 18px; padding-right: 18px; }    /* vừa ngón tay */
+}
