@@ -5,6 +5,21 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-12 11:07 — v1.53 ĐÃ LÊN LIVE (commit fb1ba71): SMS đổi số điện thoại + sửa menu và vuốt trên điện thoại
+
+**Lời chủ tool:** "push code lên git luôn cho anh kiểm tra nha". Hai mục 10/10 15:55 và 12/10 09:53 bên dưới nay ĐÃ push và ĐÃ live.
+- Commit fb1ba71, 8 file (brochure.js, main.js, style.css, tool.html, index.html, members.html, cache-version.json, changelog).
+  Push 327a336..fb1ba71, ls-remote khớp. Deploy bằng CLI từ git archive sạch vào project thinksmarttool-gy6f (auto-deploy vẫn chết).
+- Đo trên tool.thinksmartinsurance.com: 3 trang ra v1.53 + 12/10/2026; brochure.js v36, main.js v26, style.css v123 md5 khớp git từng
+  byte; /.env, /.env.local, /get_api_key.py, trang thử → 404; /api/library 200; link phông Google Sans Flex trả 200.
+
+**☠️ CÒN TREO:**
+1. Đổi số trên ảnh: chủ tool là người đầu tiên thử trên trang thật ĐÃ ĐĂNG NHẬP và trên điện thoại thật. Chưa thử Safari, chưa thử
+   Ctrl+V thật. Phông nạp từ fonts.googleapis.com lúc dùng; muốn tự chứa thì chủ tool cho phép tải file phông về public/fonts/.
+2. Nút Request vẫn chưa chạy được: chưa chạy supabase/yeucau.sql, Vercel chưa có LARK_WEBHOOK_URL (xem mục 09/10 15:50).
+3. Tính tuổi: "hôm nay" theo giờ máy sale hay ngày bên Mỹ, chờ chủ tool. SMS: 3 ảnh nền đỏ chưa rõ chương trình.
+
+---
 ## 2026-10-12 09:53 — SMS đổi số: BẤM VÀO CON SỐ TRÊN ẢNH là sửa được + hai lỗi điện thoại có sẵn (CHƯA push)
 
 **Lời chủ tool:** "anh bấm vào số phone không thay được số phone em". Anh bấm thẳng vào con số in trên ảnh (như bấm vào
