@@ -400,9 +400,15 @@ function initMobileUI() {
   if (backdrop) backdrop.addEventListener('click', closeAll);
 
   // Chọn một file trong drawer → tự đóng drawer để lộ canvas
+  // ☠️ (12/10/2026) Bốn mục PHẲNG (SMS, Age, Quote, Compare) không có file con: bấm vào
+  // dòng tiêu đề là mở thẳng màn hình. Luật cũ chỉ đóng drawer khi bấm `.tree-file-item`
+  // nên trên điện thoại chọn SMS xong drawer vẫn mở, che kín lưới ảnh và cả ô nhập. Đo ở
+  // khổ 390px: tâm ô "Số điện thoại trên ảnh" nằm dưới drawer, chạm vào là trúng drawer.
+  // Dòng tiêu đề của mục CÓ file con (Proposal, Brochure...) thì KHÔNG đóng: bấm vào đó là
+  // để xổ danh sách ra chọn tiếp.
   if (dom.treeContainer) {
     dom.treeContainer.addEventListener('click', (e) => {
-      if (isMobileViewport() && e.target.closest('.tree-file-item')) {
+      if (isMobileViewport() && e.target.closest('.tree-file-item, .nav-section-flat > .tree-folder-header')) {
         document.body.classList.remove('nav-open');
       }
     });
@@ -536,7 +542,17 @@ function initTouchGestures() {
 
   const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
 
+  // ☠️ (12/10/2026) VÙNG CHỈ ĐỌC KHÔNG ĐƯỢC NUỐT CÚ VUỐT. Thư viện (#library-view: Brochure,
+  // SMS) và các màn hình tài liệu (#doc-viewport: Compare, Age, Quote) nằm TRONG khung
+  // canvas nhưng không có gì để kéo hay zoom; ở đó ngón tay vuốt là để CUỘN. Thiếu chốt
+  // này thì touchmove bên dưới gọi preventDefault() và đem cú vuốt đi kéo bản vẽ: đo ở khổ
+  // 390px, vuốt 320px trên lưới SMS → lưới cuộn 0px, còn panY của bản vẽ đổi -320.
+  // Đây là anh em của lỗi lăn chuột (chủ tool 31/07: "trang này anh scroll không được"),
+  // hồi đó chỉ sửa cho sự kiện wheel ở trên, quên đúng chỗ này.
+  const vungDoc = (e) => !!(e.target && e.target.closest && e.target.closest('#library-view, #doc-viewport'));
+
   cc.addEventListener('touchstart', (e) => {
+    if (vungDoc(e)) { mode = null; return; }
     if (e.touches.length === 1) {
       mode = 'pan';
       lastX = e.touches[0].clientX;
@@ -570,6 +586,7 @@ function initTouchGestures() {
   }, { passive: false });
 
   const endTouch = (e) => {
+    if (vungDoc(e)) { mode = null; return; }      // nhấc bớt một ngón trong vùng chỉ đọc: vẫn không kéo bản vẽ
     if (e.touches.length === 0) {
       mode = null;
     } else if (e.touches.length === 1) {

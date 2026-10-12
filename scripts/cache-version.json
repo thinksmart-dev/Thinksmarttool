@@ -16,8 +16,8 @@
     "bam": "78d5c3a552ef"
   },
   "js/brochure.js": {
-    "v": "34",
-    "bam": "17aeb041261b"
+    "v": "36",
+    "bam": "f677cd872832"
   },
   "js/core.js": {
     "v": "50",
@@ -32,8 +32,8 @@
     "bam": "124997d5fa2a"
   },
   "js/main.js": {
-    "v": "24",
-    "bam": "5bfd9997ae5e"
+    "v": "26",
+    "bam": "6bd8fd70d0b9"
   },
   "js/namecard.js": {
     "v": "6",
@@ -80,8 +80,8 @@
     "bam": "2cb5a323a8a4"
   },
   "style.css": {
-    "v": "121",
-    "bam": "f23a5a877eb1"
+    "v": "123",
+    "bam": "c68b3f755354"
   },
   "vendor/gsap.min.js": {
     "v": "3.15.0",

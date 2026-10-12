@@ -1690,6 +1690,52 @@ body.no-editor .sidebar-right { display: none; }
 .sms-chip:focus-visible, .sms-tag:focus-visible, .sms-thumb:focus-visible, .sms-xem-dong:focus-visible {
   outline: 2px solid var(--brand); outline-offset: 2px;
 }
+/* Ô đổi số điện thoại in trên ảnh (10/10/2026). Một dải riêng đứng TRÊN thanh tìm của lưới,
+   và một dải y hệt ngay trên ảnh to của những ảnh có số. Hai ô là hai cửa vào cùng một số. */
+.sms-so-hang {
+  box-sizing: border-box; display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px;
+  padding: 8px 12px; margin: 0 0 10px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+}
+.sms-so-hang[hidden] { display: none; }
+.sms-so-nhan { font-size: var(--fs-xs); font-weight: 700; color: var(--text-2); white-space: nowrap; }
+.sms-so-hang input {
+  box-sizing: border-box; width: 168px; height: 34px; padding: 0 10px;
+  font: inherit; font-size: var(--fs-sm); font-weight: 700; font-variant-numeric: tabular-nums;
+  color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-md);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.sms-so-hang input::placeholder { color: var(--text-3); font-weight: 500; }
+.sms-so-hang input:focus { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-ring); }
+.sms-so-tt { font-size: var(--fs-xs); color: var(--text-3); }
+.sms-so-tt:empty { display: none; }
+.sms-so-tt.ok { color: var(--brand); font-weight: 600; }
+.sms-so-tt.canh-bao { color: #96590A; font-weight: 700; }
+body.dark-theme .sms-so-tt.canh-bao { color: #E9A23B; }
+/* Trên ảnh to: rộng đúng bằng thanh nút và tấm ảnh (cùng công thức với .tall-doc-bar) */
+.sms-xem-so { width: min(92%, 480px); margin-bottom: 12px; }
+/* Khung canvas bên ngoài đặt cursor: grab và user-select: none cho việc kéo bản vẽ. Trong
+   mục SMS không có gì để kéo: trả con trỏ về thường, và ô nhập phải bôi đen được chữ. */
+.sms-kho, .sms-xem { cursor: default; }
+.sms-so-hang input { -webkit-user-select: text; user-select: text; cursor: text; }
+/* VÙNG BẤM TRÊN CON SỐ của ảnh to (12/10/2026): chủ tool bấm thẳng vào số in trên ảnh để
+   sửa. Khung bọc cho ảnh để đặt nút trong suốt lên đúng chỗ con số bằng phần trăm. Viền
+   đứt luôn hiện mờ (điện thoại không có rê chuột) để biết chỗ này bấm được; nó chỉ là lớp
+   phủ trên màn hình, không nằm trong ảnh tải về. */
+.sms-xem-khung { position: relative; width: min(92%, 480px); }
+.sms-xem-khung .tall-doc-img { width: 100%; }
+.sms-xem-diem {
+  position: absolute; box-sizing: border-box; margin: 0; padding: 0;
+  background: rgba(255, 255, 255, 0.08); border: 1.5px dashed rgba(255, 255, 255, 0.7); border-radius: 6px;
+  cursor: text; transition: background-color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.sms-xem-diem[hidden] { display: none; }
+/* Con số trên ảnh khổ điện thoại chỉ cao khoảng 17px. Nới VÙNG CHẠM ra mỗi phía 14px
+   (thành khoảng 45px) bằng lớp giả, hình dáng viền đứt vẫn ôm sát con số. */
+.sms-xem-diem::after { content: ''; position: absolute; inset: -14px -8px; }
+.sms-xem-diem:hover, .sms-xem-diem:focus-visible {
+  outline: none; background: rgba(255, 255, 255, 0.2); border-color: #fff; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.35);
+}
 .sms-dem { margin-left: auto; font-size: var(--fs-xs); color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
 
 /* Ô ảnh VUÔNG, neo mép trên. Ảnh vuông (2000x2000, loại nhiều nhất) hiện trọn;
@@ -1743,6 +1789,11 @@ body.no-editor .sidebar-right { display: none; }
   .sms-chips::-webkit-scrollbar { display: none; }
   .sms-chip { flex-shrink: 0; }
   .sms-dem { margin-left: 0; }
+  /* Ô số điện thoại: cao 44px, chữ 16px (nhỏ hơn là iPhone tự phóng to trang). Ô co theo
+     chỗ còn lại sau nhãn; width 0 + flex để nó KHÔNG đòi bề rộng riêng (để auto thì ô đòi
+     246px và đẩy cả dải tràn ngang 20px ở màn 375px, đo 10/10/2026). */
+  .sms-so-hang input { flex: 1 1 0; width: 0; min-width: 120px; height: 44px; font-size: 16px; }
+  .sms-so-tt { flex: 1 1 100%; }
   /* Ô chỉ rộng ~160px: cho tên 3 dòng, 2 dòng là cắt mất chữ của tên dài */
   .sms-ten { -webkit-line-clamp: 3; min-height: calc(var(--fs-sm) * 1.35 * 3); }
   /* Hashtag trên thẻ nhỏ (22px): nới VÙNG CHẠM lên ~38px mà không đổi hình dáng */

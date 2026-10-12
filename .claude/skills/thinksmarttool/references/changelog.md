@@ -5,6 +5,89 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-12 09:53 — SMS đổi số: BẤM VÀO CON SỐ TRÊN ẢNH là sửa được + hai lỗi điện thoại có sẵn (CHƯA push)
+
+**Lời chủ tool:** "anh bấm vào số phone không thay được số phone em". Anh bấm thẳng vào con số in trên ảnh (như bấm vào
+chữ bên Proposal); bản 10/10 chỉ có ô nhập nằm phía trên ảnh, bấm vào số thì không có gì xảy ra, con trỏ còn là bàn tay kéo.
+
+**☠️ Lần đầu thử trên ĐÚNG TRANG /tool THẬT.** Các lần trước chỉ thử trên trang dựng riêng (không có main.js). Cách thử không
+cần đăng nhập và không sửa file nào: trong Playwright chặn riêng /js/portal/config.js, trả về TST_CONFIG rỗng → trang chạy "chế độ
+mở" với đủ core.js, main.js, brochure.js thật. Ba lỗi dưới đây chỉ lộ ra nhờ cách này.
+
+**Đã sửa (brochure.js v35→36, style.css v122→123, main.js v24→26):**
+1. Vùng bấm trên con số của ảnh to (.sms-xem-diem, đặt bằng phần trăm theo hộp số đã dò; viền đứt mờ luôn hiện; vùng chạm nới
+   14px mỗi phía cho ngón tay). Bấm vào là nhảy lên ô nhập, số cũ bôi đen sẵn. Lớp phủ này không nằm trong ảnh tải về.
+   Con trỏ trong mục SMS trả về thường (khung canvas đặt cursor: grab).
+2. LỖI CÓ SẴN, điện thoại: chọn SMS / Age / Quote / Compare xong ngăn menu KHÔNG đóng, che kín màn hình. Luật cũ chỉ đóng khi
+   bấm .tree-file-item; bốn mục phẳng không có file con. Sửa ở đúng một chỗ trong main.js. Mục có file con vẫn giữ menu mở.
+3. LỖI CÓ SẴN, điện thoại: vuốt một ngón trong #library-view / #doc-viewport bị đoạn kéo bản vẽ nuốt (touchmove preventDefault).
+   Đo 390px: vuốt 320px trên lưới SMS → lưới cuộn 0px, panY bản vẽ -320. Anh em của lỗi wheel 31/07, hồi đó quên sự kiện touch.
+   Sửa: touchstart / touchend bỏ qua khi chạm bắt đầu trong hai vùng đó.
+
+**Kiểm chứng trên trang thật (Playwright, chuột thật / chạm thật qua CDP, gõ phím thật):**
+- 1366px: bấm chuột vào toạ độ con số trên ảnh → tiêu điểm vào ô nhập, gõ 8329804749 → ảnh đổi; bấm lần hai → bôi đen 0..14,
+  gõ số khác → thay. Vùng bấm trùng tâm con số (lệch 0px) ở ảnh 2000px, 1254px và ảnh bị lệch 20px. Ảnh thợ nail: không có vùng bấm.
+- 390px có chạm: bốn mục phẳng chạm xong menu đóng và mở đúng công cụ; Proposal chạm xong menu vẫn mở; chạm ô số gõ được;
+  chạm lệch 10px dưới viền đứt vẫn trúng; vuốt lưới cuộn 456px, bản vẽ không bị kéo.
+- Đối chứng phần cũ: mở mẫu Proposal IUL, vuốt trên bản vẽ → bản vẽ vẫn bị kéo 120px như trước.
+- ☠️ Hai bẫy thước cùng buổi: (a) page.screenshot() xoá khổ màn hình đặt bằng CDP setDeviceMetricsOverride, các cú chạm sau
+  rơi sai chỗ → đặt khổ bằng page.setViewportSize; (b) mục nằm dưới mép trong ngăn menu → cuộn vào tầm nhìn trước khi chạm.
+- CHƯA kiểm: điện thoại thật, Safari, trang đã đăng nhập bằng tài khoản thật.
+
+---
+## 2026-10-10 15:55 — SMS: ĐỔI SỐ ĐIỆN THOẠI in trên ảnh (30/34 ảnh có số) (CHƯA push)
+
+**Lời chủ tool:** "phần hình ảnh mess anh cần chỉnh sửa được số phone ... có thể nhập và sửa số phone như bản brochure",
+rồi chốt: "anh chỉ cần thay đổi được đúng ở phần số phone thôi, hình ảnh nào không có thì không cần, còn hình ảnh nào có thì
+hãy có chỗ để cho anh chỉnh sửa".
+
+**Sự thật đo được trước khi làm.** Ảnh SMS là JPEG, số "(888) 909-1446" nằm chết trong điểm ảnh ở dải chân. 30 ảnh vuông dùng
+chung một mẫu chân (dòng số rộng 17,46 đến 17,55% cạnh ảnh, cao 2,23 đến 2,35%); 4 ảnh thợ nail KHÔNG có số nào. Bản Brochure
+thật ra không có chỗ sửa số (chỉ Proposal và Name Card có, vì đó là file SVG).
+
+**Cách làm (public/js/brochure.js v34→35, public/style.css v121→122), tất cả chạy trong trình duyệt, không thêm API, không thêm file dữ liệu:**
+- smsTimHopSo: dò dòng chữ trắng thứ nhất giữa hai vạch dọc của dải chân rồi so với khuôn. Ảnh mới cùng mẫu chân tự ăn.
+- smsVaNen: tô lại ô chữ cũ bằng màu lấy theo TỪNG CỘT từ hai dải hàng sạch phía trên chữ (dải chân là dải màu chuyển ngang).
+- smsVeSo: viết số mới bằng Google Sans Flex đậm 575; cỡ chữ tự suy từ bề rộng dòng số gốc nên ảnh 2000px và 1254px đều đúng.
+- Giao diện: một dải "Số điện thoại trên ảnh" đứng trên thanh tìm của lưới (không dính khi cuộn) và một dải y hệt trên ảnh to,
+  CHỈ hiện với ảnh có số. Hai ô là hai cửa vào cùng một số. Số nhớ ở máy người dùng (localStorage tst-sms-sdt), không lên máy chủ.
+- Chỉ đổi khi đủ 10 chữ số kiểu Mỹ (formatPhoneValue). Gõ dở: ảnh giữ số gốc và dòng trạng thái nói rõ. Để trống hoặc gõ lại số
+  gốc: tải thẳng file gốc, không qua xử lý. Ảnh không có số: luôn tải file gốc.
+- Nút Tải về: dựng ảnh mang số mới rồi tải (JPEG chất lượng 0,92, cùng kích thước). Lượt tải vẫn được ghi đúng 1 lần.
+
+**Kiểm chứng (Playwright, gõ phím thật, tải file thật):**
+- Dò số: 30/34 ảnh có số, 4 ảnh thợ nail bị loại đúng; toạ độ khớp bản đo độc lập bằng Python.
+- Chọn phông: quét 40 họ phông x 3 độ đậm, Google Sans Flex lệch ít nhất (0,042; hạng nhì Reddit Sans 0,058; Google Sans 0,076).
+  Độ đậm: thay số gốc bằng CHÍNH số gốc rồi so với ảnh gốc trên cả 30 ảnh, 575 lệch ít nhất (trung bình 7,2/255, tệ nhất 10,2).
+- File tải về: 2000x2000, 621 KB (gốc 726 KB); ngoài ô số 99,3% điểm ảnh lệch dưới 10/255 (do nén lại), không điểm nào lệch quá 50.
+  Ảnh thợ nail tải về và ảnh tải khi ô để trống: trùng từng byte với file gốc.
+- Phông không tải được (chặn fonts.googleapis.com): KHÔNG vẽ bằng phông khác, không tải ảnh, có hộp báo; có mạng lại thì bấm lần nữa là được.
+- Bố cục: 1280px dải 52px + thanh 96px; 375px dải 87px (không dính) + thanh dính 147px = 18% như cũ; 320px không tràn ngang.
+  Bản đầu nhét ô số vào thanh dính: thanh cao 218px = 27% và tràn ngang 20px ở 375px, đã đưa ra ngoài.
+- Đã nhìn bằng mắt cả 30 ảnh sau khi đổi số: không thấy vết vá trên nền nào.
+
+**Sửa thêm 12/10/2026 09:14, sau khi chủ tool hỏi "em kiểm tra nhập thử chưa em".** Thử lại bằng phím thật thì lộ ba chỗ
+bản 10/10 CHƯA thử tới (hôm đó chỉ thử gõ vào ô trống và sửa một số ở giữa):
+- Ô đang có số, gõ hoặc dán số mới nối vào đuôi → "(832) 980-47497142356777", ảnh lặng lẽ quay về số gốc. Đây đúng là bài học
+  của ô ngày sinh (09/10) mà không được mang sang ô mới. Sửa: vào ô là bôi đen hết; dán cả một số hợp lệ thì thay hết ô.
+- Câu báo sai nghĩa: 11 chữ số và số bắt đầu bằng 0 đều báo "Cần đủ 10 chữ số"; gõ toàn chữ thì không báo gì. Sửa: smsDocO
+  tách thêm ba lý do thua / so0 / chu, mỗi lý do một câu, câu nào cũng kèm "Ảnh đang giữ số gốc".
+- Kiểm lại sau sửa (Playwright, bấm chuột và gõ phím thật): bấm vào ô có số → bôi đen 0..14, gõ số mới thay được; sửa một chữ số
+  ở giữa được; dán "Phone: 206-555-0147" khi con trỏ ở cuối → thay hết thành (206) 555-0147; ảnh to đổi số theo; file tải về
+  2000x2000, ngoài ô số 99,68% điểm ảnh lệch dưới 10/255; ảnh thợ nail không hiện ô; tải lại trang còn nhớ số; xoá trống về số gốc.
+- ☠️ Bẫy thước cùng buổi: bảng tạm của trình duyệt thử RỖNG dù writeText không báo lỗi (readText trả chuỗi rỗng), nên bước dán
+  ra ô trống và suýt bị đọc thành "ô này không dán được". Đối chứng cứu: hai ô trơn không gắn mã nào dán cũng ra trống. Thử dán
+  bằng cách đưa cả chuỗi vào một lần (keyboard.insertText) và bằng sự kiện paste có kèm dữ liệu; luôn có ô đối chứng.
+- CHƯA thử bằng Ctrl+V thật trên trình duyệt thật vì lý do trên.
+
+**☠️ Biết trước:**
+- Phông nạp từ fonts.googleapis.com lúc chạy (Google Sans Flex, giấy phép mở OFL). Mạng công ty chặn Google Fonts thì tính năng
+  báo lỗi chứ không ra ảnh sai. Muốn hết phụ thuộc: chủ tool cho phép thì tải file phông về để ở public/fonts/.
+- Ảnh nhỏ trên lưới KHÔNG đổi số (chữ số trên đó cao khoảng 4px, không đọc được); số mới thấy ở ảnh to và file tải về.
+- Chỉ nhận số Mỹ 10 chữ số. Số bắt đầu bằng 0 (kiểu Việt Nam) bị coi là chưa đủ.
+- CHƯA kiểm: trang /tool đã đăng nhập, điện thoại thật, Safari.
+
+---
 ## 2026-10-09 15:50 — v1.52 ĐÃ LÊN LIVE (commit 2e557d7): SMS 34 ảnh + hashtag, sửa nhập tuổi, nút Request, gỡ 3 nhãn menu
 
 **Lời chủ tool:** "push lên đi em". Bốn mục 09/10 bên dưới (13:52, 14:15, 14:56, 15:02, 15:27, 15:34) nay ĐÃ push và ĐÃ live.
