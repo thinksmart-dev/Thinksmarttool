@@ -35,6 +35,13 @@ nó phèn quá". Giữa chừng anh nhắn thêm: "làm xong đẩy code lên an
 **Chưa đo:** điện thoại thật, Safari, tài khoản đã đăng nhập (chủ tool thử trên live). Đây là BẢN MẪU về gu: chủ tool chưa gật hướng,
 phần "đẹp hơn" có thể còn chỉnh tiếp sau khi anh xem.
 
+**ĐÃ LÊN LIVE 11:27 (commit 9b86a34, 7 file):** push fea46d8..9b86a34, ls-remote khớp. Deploy CLI từ git archive sạch vào
+thinksmarttool-gy6f (dpl_8ua4sr69…, READY, aliased tool.thinksmartinsurance.com). Đo live: 3 trang ra v1.54; brochure.js?v=37,
+style.css?v=124, tool.html md5 khớp git từng byte; /.env, /.env.local, /get_api_key.py, /.vercel/project.json → 404; /api/library 200.
+Chạy thử ngay trên live (chế độ mở): mở ảnh ra 12 ô gợi ý, 12/12 ảnh nhỏ nạp được, bấm ô thứ hai đổi sang ảnh "Saving ở đâu…" mang
+số mới, bấm nút tròn về lại lưới. Lùi bản: Vercel → Deployments → Promote bản v1.53.
+Việc còn treo giữ nguyên như mục 11:07 bên dưới (nút Request chưa nối Lark, giờ "hôm nay" của Tính tuổi, 3 ảnh nền đỏ, phông tự chứa).
+
 ---
 
 ## 2026-10-12 11:07 — v1.53 ĐÃ LÊN LIVE (commit fb1ba71): SMS đổi số điện thoại + sửa menu và vuốt trên điện thoại
