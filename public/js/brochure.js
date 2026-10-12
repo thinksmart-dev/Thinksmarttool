@@ -689,7 +689,11 @@ function showSmsGallery(items) {
     <div class="sms-xem" hidden>
       <div class="tall-doc">
         <div class="tall-doc-bar sms-xem-bar">
-          <button type="button" class="btn btn-secondary btn-sm sms-xem-dong">‹ Quay lại lưới</button>
+          <!-- (12/10/2026) Chủ tool: "nút quay lại lưới nó phèn quá". Bỏ nút chữ có viền, thay
+               bằng nút tròn chỉ có mũi tên; tên nút nằm ở title và aria-label. -->
+          <button type="button" class="sms-xem-dong" title="Quay lại lưới ảnh" aria-label="Quay lại lưới ảnh">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
           <span class="tall-doc-title sms-xem-ten"></span>
           <a class="btn btn-primary btn-sm tall-doc-dl sms-xem-dl" href="#" download>${NAV_ICONS.download} Tải về</a>
         </div>
@@ -710,6 +714,12 @@ function showSmsGallery(items) {
           <img class="tall-doc-img sms-xem-img" alt="">
           <button type="button" class="sms-xem-diem" hidden
                   title="Bấm để đổi số điện thoại" aria-label="Đổi số điện thoại trên ảnh"></button>
+        </div>
+        <!-- (12/10/2026) Chủ tool: "khi anh bấm vào một hình thì ở dưới gợi ý thêm các hình để
+             preview". Bấm một ô ở đây là đổi ảnh to ngay, không phải quay về lưới. -->
+        <div class="sms-goiy" hidden>
+          <div class="sms-goiy-dau">Gợi ý thêm</div>
+          <div class="sms-goiy-luoi"></div>
         </div>
       </div>
     </div>`;
@@ -882,21 +892,62 @@ function showSmsGallery(items) {
     xem.querySelector('.sms-xem-ten').title = it.name;
     xem.querySelector('.sms-xem-dl').href = dl;
     const img = xem.querySelector('.sms-xem-img');
-    // Đang đặt số mới thì KHÔNG bày ảnh gốc ra trước: số cũ sẽ hiện to rõ một nhịp rồi
-    // mới đổi, nhìn như tool quên số vừa nhập. Bày tạm ảnh nhỏ (đã có sẵn trong bộ đệm,
-    // chữ số trên đó bé không đọc nổi) cho tới khi bản mang số mới dựng xong.
-    img.src = smsSo ? `/api/download?path=${encodeURIComponent(it.thumb)}&inline=1` : dl + '&inline=1';
+    // LUÔN bày ảnh nhỏ ra trước (đã có sẵn trong bộ đệm, cùng tỉ lệ với ảnh gốc), ảnh to
+    // nạp xong thì thay vào. Hai lý do:
+    // 1. Đang đặt số mới mà bày ảnh gốc ra trước thì số cũ hiện to rõ một nhịp rồi mới
+    //    đổi, nhìn như tool quên số vừa nhập (chữ số trên ảnh nhỏ bé không đọc nổi).
+    // 2. Bấm một ô gợi ý: không bày ảnh nhỏ thì ảnh CŨ còn nằm đó dưới cái tên MỚI cho
+    //    tới khi ảnh to về, và khung nhảy chiều cao nếu hai ảnh khác tỉ lệ.
+    img.src = `/api/download?path=${encodeURIComponent(it.thumb)}&inline=1`;
     img.alt = it.tieuDe;
     dangXemI = i;
     hangSoXem.hidden = true;           // hiện lại ngay khi dò ra ảnh này có số
     xem.querySelector('.sms-xem-diem').hidden = true;   // vùng bấm trên con số cũng vậy
-    smsDangXem = nut || null;
-    smsCuonCu = view.scrollTop;
+    // Chỗ cuộn và ô đã bấm chỉ ghi khi đi TỪ LƯỚI vào. Đổi ảnh bằng ô gợi ý thì giữ
+    // nguyên hai thứ đó: bấm quay lại vẫn về đúng chỗ đang xem dở trong lưới.
+    if (xem.hidden) {
+      smsDangXem = nut || null;
+      smsCuonCu = view.scrollTop;
+    }
+    veGoiY(i);
     kho.hidden = true;
     xem.hidden = false;
     view.scrollTop = 0;
-    xem.querySelector('.sms-xem-dong').focus();
+    xem.querySelector('.sms-xem-dong').focus({ preventScroll: true });
     veAnhLon();
+  }
+
+  // Ô gợi ý dưới ảnh to: ảnh chung nhiều hashtag với ảnh đang xem đứng trước. Bằng điểm
+  // thì xếp theo thứ tự trong lưới, bắt đầu từ ảnh ngay SAU ảnh đang xem rồi vòng lại:
+  // bấm liên tiếp sẽ đi dần qua cả bộ thay vì lần nào cũng gặp lại mấy ô đầu bảng.
+  // 12 ô: chia hết cho 4 cột (máy tính) lẫn 3 cột (điện thoại), không hàng nào lẻ.
+  const GOIY_TOI_DA = 12;
+  function veGoiY(i) {
+    const khoa = items[i].tags.map(smsBoDau);
+    const n = items.length;
+    const ds = [];
+    items.forEach((x, j) => {
+      if (j === i) return;
+      // Trùng hẳn hashtag: 1 điểm. Hashtag này nằm trong hashtag kia (#IUL với
+      // #MaxFundedIUL): nửa điểm, vẫn là cùng dòng sản phẩm nên đứng trước ảnh không liên quan.
+      let chung = 0;
+      x.tags.map(smsBoDau).forEach(t => {
+        if (khoa.includes(t)) chung += 1;
+        else if (khoa.some(k => k.includes(t) || t.includes(k))) chung += 0.5;
+      });
+      ds.push({ j: j, chung: chung, xa: (j - i + n) % n });
+    });
+    ds.sort((a, b) => b.chung - a.chung || a.xa - b.xa);
+    const khoi = xem.querySelector('.sms-goiy');
+    khoi.hidden = !ds.length;
+    khoi.querySelector('.sms-goiy-luoi').innerHTML = ds.slice(0, GOIY_TOI_DA).map(o => {
+      const x = items[o.j];
+      return `
+        <button type="button" class="sms-goiy-o" data-i="${o.j}" title="${escapeHtml(x.tieuDe)}">
+          <img loading="lazy" decoding="async" src="/api/download?path=${encodeURIComponent(x.thumb)}&inline=1" alt="">
+          <span class="sms-goiy-ten">${escapeHtml(x.tieuDe)}</span>
+        </button>`;
+    }).join('');
   }
 
   function dongAnhLon() {
@@ -930,6 +981,8 @@ function showSmsGallery(items) {
 
   xem.addEventListener('click', (e) => {
     if (e.target.closest('.sms-xem-dong')) { dongAnhLon(); return; }
+    const goiY = e.target.closest('.sms-goiy-o');
+    if (goiY) { moAnhLon(Number(goiY.dataset.i)); return; }
     // Bấm vào con số trên ảnh = vào ô nhập. Ô tự bôi đen khi nhận tiêu điểm (xem trên)
     // nên gõ là thay số luôn. Cuộn về đầu để ô nhập không nằm khuất dưới thanh nút dính.
     if (e.target.closest('.sms-xem-diem')) {

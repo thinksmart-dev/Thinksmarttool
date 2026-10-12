@@ -1768,13 +1768,46 @@ body.dark-theme .sms-so-tt.canh-bao { color: #E9A23B; }
    cỡ một cái điện thoại, thanh nút dính trên đỉnh). Không làm lớp phủ fixed:
    .library-view có z-index nên là một tầng xếp riêng, lớp phủ bên trong nó không
    nổi lên trên thanh bên và thanh đầu trang được. */
-.sms-xem-ten { flex: 1 1 auto; min-width: 0; text-align: center; }
-.sms-xem-dong { flex-shrink: 0; }
+.sms-xem-bar { padding: 8px 10px 8px 8px; }
+.sms-xem-ten { flex: 1 1 auto; min-width: 0; text-align: left; }
+/* Nút quay lại (12/10/2026, chủ tool: "nút quay lại lưới nó phèn quá"): nút tròn chỉ có
+   mũi tên, không viền, không chữ. Bản trước là nút chữ có viền "‹ Quay lại lưới", đứng
+   cạnh nút Tải về tím đậm thành hai nút tranh nhau; nay thanh chỉ còn MỘT nút nổi. */
+.sms-xem-dong {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; padding: 0; border: none; border-radius: 50%;
+  background: var(--surface-2); color: var(--text-2); cursor: pointer;
+  transition: background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.sms-xem-dong:hover { background: var(--brand-soft); color: var(--brand); }
+
+/* GỢI Ý THÊM dưới ảnh to (12/10/2026): lưới ô nhỏ rộng đúng bằng tấm ảnh. Ô vuông, neo
+   mép trên như lưới chính (chỗ có tiêu đề của tấm hình). Bấm là đổi ảnh to tại chỗ. */
+.sms-goiy { width: min(92%, 480px); margin-top: 22px; }
+.sms-goiy-dau { margin: 0 2px 10px; font-size: var(--fs-sm); font-weight: 800; color: var(--text); }
+.sms-goiy-luoi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px 10px; }
+.sms-goiy-o {
+  display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 0;
+  border: none; background: none; font: inherit; text-align: left; color: var(--text-2); cursor: pointer;
+}
+.sms-goiy-o img {
+  width: 100%; aspect-ratio: 1 / 1; object-fit: cover; object-position: top center; display: block;
+  border-radius: var(--r-md); background: var(--surface-3); box-shadow: var(--shadow-xs);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.sms-goiy-o:hover img { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.sms-goiy-o:hover { color: var(--text); }
+.sms-goiy-o:focus-visible { outline: none; }
+.sms-goiy-o:focus-visible img { outline: 2px solid var(--brand); outline-offset: 2px; }
+.sms-goiy-ten {
+  font-size: var(--fs-xs); font-weight: 600; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
 
 /* ☠️ BẮT BUỘC: mấy khối trên có `display` riêng (flex/grid) nên selector class
    THẮNG thuộc tính `hidden` của trình duyệt. Thiếu dòng này thì ô bị lọc vẫn
    hiện và lưới không chịu nhường chỗ cho ảnh to (bài học 27/07). */
-.sms-card[hidden], .sms-rong[hidden], .sms-kho[hidden], .sms-xem[hidden] { display: none; }
+.sms-card[hidden], .sms-rong[hidden], .sms-kho[hidden], .sms-xem[hidden], .sms-goiy[hidden] { display: none; }
 
 @media (max-width: 640px) {
   .sms-luoi { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -1799,6 +1832,12 @@ body.dark-theme .sms-so-tt.canh-bao { color: #E9A23B; }
   /* Hashtag trên thẻ nhỏ (22px): nới VÙNG CHẠM lên ~38px mà không đổi hình dáng */
   .sms-tag { position: relative; }
   .sms-tag::after { content: ''; position: absolute; inset: -8px -2px; }
+  /* Ảnh to: nút quay lại 44px cho vừa ngón tay; gợi ý 3 cột (4 cột thì ô chỉ còn ~80px) */
+  .sms-xem-dong { width: 44px; height: 44px; }
+  /* Tên ảnh cho 2 dòng: một dòng thì ở màn 390px chỉ còn chỗ cho ~24 ký tự (đo 12/10/2026:
+     "40-50, retirement không c…"). Hai dòng 34px vẫn thấp hơn nút 44px nên thanh không cao thêm. */
+  .sms-xem-ten { white-space: normal; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .sms-goiy-luoi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* Ensure parent library-view is scrollable and styled correctly when group is active */

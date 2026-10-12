@@ -5,6 +5,38 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-12 11:25 — v1.54: ảnh to của SMS có GỢI Ý THÊM ở dưới + nút quay lại thành nút tròn
+
+**Lời chủ tool (kèm ảnh chụp ảnh to trên live v1.53, số đã đổi được):** "đã thấy số được chỉnh rồi. bây giờ anh cần chỉnh lại chỗ
+preview hình ảnh cho nó đẹp hơn. ví dụ khi anh bấm vào một hình thì ở dưới sẽ gợi ý thêm các hình để preview. và nút quay lại lưới
+nó phèn quá". Giữa chừng anh nhắn thêm: "làm xong đẩy code lên anh test thực tế luôn".
+
+**Đã làm (brochure.js v36→37, style.css v123→124, chỉ trong showSmsGallery và nhóm .sms-*):**
+1. Khối "Gợi ý thêm" dưới ảnh to (.sms-goiy): 12 ô vuông kèm tên 2 dòng, máy tính 4 cột, điện thoại 3 cột (12 chia hết cho cả hai).
+   Bấm một ô là ĐỔI ẢNH TO TẠI CHỖ, không quay về lưới. Xếp hạng trong veGoiY(): trùng hashtag 1 điểm, hashtag này nằm trong hashtag
+   kia (#IUL với #MaxFundedIUL) nửa điểm; bằng điểm thì theo thứ tự lưới bắt đầu từ ảnh ngay SAU ảnh đang xem rồi vòng lại, nên bấm
+   liên tiếp đi dần qua cả bộ chứ không quanh quẩn mấy ô đầu bảng.
+2. Nút quay lại: bỏ nút chữ có viền "‹ Quay lại lưới", thay bằng nút tròn 36px chỉ có mũi tên (điện thoại 44px), không viền; tên nút ở
+   title và aria-label. Tên ảnh canh trái cạnh nút; điện thoại cho tên 2 dòng (một dòng chỉ còn 179px cho chuỗi cần 280px).
+3. moAnhLon(): LUÔN bày ảnh nhỏ ra trước rồi mới thay ảnh to (trước chỉ làm vậy khi đang đặt số mới). Không làm thì khi bấm ô gợi ý,
+   ảnh CŨ còn nằm dưới cái tên MỚI cho tới khi ảnh to về. Chỗ cuộn của lưới và ô đã bấm chỉ ghi khi đi TỪ LƯỚI vào; đổi ảnh bằng ô
+   gợi ý giữ nguyên hai thứ đó.
+
+**Đo trên trang /tool thật ở máy (Playwright, chế độ mở, chuột thật):**
+- 1440x900: nút 36x36, bo tròn, viền 0, không chữ; thanh 54px; ảnh 480x480 ở y 234→714; hàng gợi ý đầu ló ra từ y 765 trong màn 900
+  (thấy ngay không cần cuộn). 12 ô. Ảnh "40-50…" (#MaxFundedIUL): 2 ô đầu là 2 ảnh cùng hashtag, 10 ô sau đều là ảnh #IUL.
+- Bấm ô gợi ý: tên đổi, ảnh đổi sang bản mang số (223) 456-7890, cuộn về 0, ô số và vùng bấm trên con số vẫn hiện. Bấm 4 lần liền ô
+  đầu: ra 4 ảnh khác nhau, không lặp.
+- Giữ chỗ cuộn: lưới đang ở 1205,6px, mở ảnh số 20, đổi 2 ảnh qua gợi ý, bấm nút tròn → lưới về đúng 1205,6px, tiêu điểm về ô số 20.
+  Esc cũng đóng được sau khi đổi ảnh. Ảnh dọc hiện 480x853.
+- 390x844: nút 44x44, thanh 62px (không cao thêm), 3 cột, ô 110px, tràn ngang 0px, tên 2 dòng không bị cắt.
+- kiem-cache-version: 23 file khớp.
+
+**Chưa đo:** điện thoại thật, Safari, tài khoản đã đăng nhập (chủ tool thử trên live). Đây là BẢN MẪU về gu: chủ tool chưa gật hướng,
+phần "đẹp hơn" có thể còn chỉnh tiếp sau khi anh xem.
+
+---
+
 ## 2026-10-12 11:07 — v1.53 ĐÃ LÊN LIVE (commit fb1ba71): SMS đổi số điện thoại + sửa menu và vuốt trên điện thoại
 
 **Lời chủ tool:** "push code lên git luôn cho anh kiểm tra nha". Hai mục 10/10 15:55 và 12/10 09:53 bên dưới nay ĐÃ push và ĐÃ live.
