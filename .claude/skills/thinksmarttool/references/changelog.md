@@ -5,7 +5,7 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
-## 2026-10-13 13:58 — v1.55 (CHƯA push): SMS chỉ hiện ảnh mang #ThoNail, 30 ảnh khác tạm ẩn
+## 2026-10-13 14:01 — v1.55 ĐÃ LÊN LIVE (commit 42d60f3): SMS chỉ hiện ảnh mang #ThoNail, 30 ảnh khác tạm ẩn
 
 **Lời chủ tool:** "SMS ẩn hết các tấm hình ngoài hashtag #thonail".
 
@@ -21,7 +21,15 @@ mang #IUL #ThoNail, 4/4 ảnh nhỏ nạp được; hàng lọc còn "Tất cả
 "Không có ảnh nào khớp"; mở ảnh "Thợ nail 1" thì khối gợi ý còn đúng 3 ảnh thợ nail kia. /api/library vẫn trả Chung:34, _thumb:34.
 Badge đã đặt sẵn v1.55 + 13/10/2026 trên 3 trang; kiem-cache-version khớp (chưa chạy --ghi, chạy lúc push).
 
-**Chờ chủ tool:** cho phép đẩy lên live (sale đang dùng sẽ thấy 34 ảnh còn 4). Chưa biết ẩn tạm tới khi nào, hỏi khi cần hiện lại.
+**ĐÃ LÊN LIVE 14:01 (commit 42d60f3, 6 file):** chủ tool nhắn "xong rồi push code lên git luôn nha em". Push 69344ce..42d60f3, ls-remote
+khớp. Deploy CLI từ git archive sạch vào thinksmarttool-gy6f (READY, aliased tool.thinksmartinsurance.com). Đo live: 3 trang ra v1.55;
+brochure.js?v=38 và tool.html md5 khớp git từng byte; /.env, /.env.local, /get_api_key.py, /.vercel/project.json → 404; /api/library 200,
+vẫn trả đủ Chung:34 + _thumb:34. Chạy thử trên live: menu "4 tin nhắn mẫu", lưới 4 thẻ thợ nail, mở ảnh ra 3 ô gợi ý. Lùi bản: Vercel →
+Deployments → Promote v1.54 (dpl_8ua4sr69…).
+- ⚠️ Cả 4 ảnh #ThoNail KHÔNG in số điện thoại ở chân ảnh (đã mở xem chân từng ảnh), nên ô đổi số không hiện ở ảnh nào. Đúng thiết kế
+  ("ảnh nào không có số thì không cần") nhưng đồng nghĩa: trong lúc ẩn 30 ảnh kia, tính năng đổi số trên ảnh SMS không dùng được.
+  Tính năng đó đã được báo cho team Teams hôm 12/10, nên sale thử sẽ không thấy ô số. Chờ chủ tool quyết: giữ vậy, hay hiện lại ảnh có số.
+- Chưa biết ẩn tạm tới khi nào. Hiện lại tất cả: đổi SMS_CHI_HIEN_TAG thành [] + bump brochure.js.
 
 ---
 
