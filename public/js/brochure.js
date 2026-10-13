@@ -268,6 +268,15 @@ function smsBoDuoi(ten) {
   return String(ten).replace(/[.](jpe?g|png|pdf|svg|webp|gif)$/i, '');
 }
 
+// ☠️ CHỈ HIỆN ẢNH MANG MỘT TRONG CÁC HASHTAG NÀY (13/10/2026). Chủ tool: "SMS ẩn hết các
+// tấm hình ngoài hashtag #thonail". Ảnh khác VẪN NẰM NGUYÊN trong SMS/ và SMS/_thumb/,
+// không xoá, không dời; chỉ không lên lưới, không tính vào số đếm, không vào khối gợi ý.
+// Hiện lại tất cả: để mảng rỗng []. Thêm một nhóm nữa: thêm hashtag viết thường không dấu,
+// ví dụ ['thonail', 'termlife'].
+// ⚠️ Khi mảng còn giá trị, ảnh MỚI thả vào SMS/ mà không mang hashtag trong mảng sẽ KHÔNG
+// hiện. Thấy "thêm ảnh rồi mà không lên" thì xem dòng này trước.
+const SMS_CHI_HIEN_TAG = ['thonail'];
+
 function danhSachSms() {
   const groups = appState.library.sms || {};
   const anhNho = {};
@@ -284,7 +293,8 @@ function danhSachSms() {
         thumb: anhNho[smsBoDuoi(it.name)] || it.path,
         khoaTim: khoa, khoaLien: khoa.split(' ').join('')
       });
-    });
+    })
+    .filter(it => !SMS_CHI_HIEN_TAG.length || it.tags.some(t => SMS_CHI_HIEN_TAG.includes(smsBoDau(t))));
 }
 
 // Một ảnh có khớp từ khoá không. Khớp khi MỌI từ gõ vào đều có mặt (thứ tự nào

@@ -5,6 +5,26 @@ Newest entries on top. Keep it concrete (versions, files, commands).
 
 ---
 
+## 2026-10-13 13:58 — v1.55 (CHƯA push): SMS chỉ hiện ảnh mang #ThoNail, 30 ảnh khác tạm ẩn
+
+**Lời chủ tool:** "SMS ẩn hết các tấm hình ngoài hashtag #thonail".
+
+**Đã làm (brochure.js v37→38, đúng một chỗ):** hằng `SMS_CHI_HIEN_TAG = ['thonail']` ngay trên `danhSachSms()`, hàm này lọc danh
+sách theo hằng đó. `danhSachSms()` là nguồn duy nhất của số đếm ở menu, lưới ảnh, ô tìm và khối gợi ý nên cả bốn chỗ đổi theo.
+- ☠️ KHÔNG xoá, KHÔNG dời file: 34 ảnh và 34 ảnh nhỏ vẫn nằm nguyên trong SMS/ và SMS/_thumb/. Hiện lại tất cả = đổi hằng thành [].
+  Thêm nhóm = thêm hashtag viết thường không dấu, ví dụ ['thonail', 'termlife'].
+- ⚠️ Khi hằng còn giá trị, ảnh MỚI thả vào SMS/ mà không mang hashtag trong hằng sẽ KHÔNG hiện. Ai báo "thêm ảnh mà không lên"
+  thì xem hằng này trước. Đây là lọc ở trình duyệt để ẩn khỏi giao diện, không phải khoá: ai có sẵn link file vẫn tải được.
+
+**Đo trên trang /tool thật ở máy (Playwright, chế độ mở):** menu ghi "4 tin nhắn mẫu" (trước 34); lưới 4 thẻ, đều là "Thợ nail 1..4"
+mang #IUL #ThoNail, 4/4 ảnh nhỏ nạp được; hàng lọc còn "Tất cả 4 · #IUL 4 · #ThoNail 4"; gõ tìm "term life" ra 0 thẻ và hiện dòng
+"Không có ảnh nào khớp"; mở ảnh "Thợ nail 1" thì khối gợi ý còn đúng 3 ảnh thợ nail kia. /api/library vẫn trả Chung:34, _thumb:34.
+Badge đã đặt sẵn v1.55 + 13/10/2026 trên 3 trang; kiem-cache-version khớp (chưa chạy --ghi, chạy lúc push).
+
+**Chờ chủ tool:** cho phép đẩy lên live (sale đang dùng sẽ thấy 34 ảnh còn 4). Chưa biết ẩn tạm tới khi nào, hỏi khi cần hiện lại.
+
+---
+
 ## 2026-10-12 11:25 — v1.54: ảnh to của SMS có GỢI Ý THÊM ở dưới + nút quay lại thành nút tròn
 
 **Lời chủ tool (kèm ảnh chụp ảnh to trên live v1.53, số đã đổi được):** "đã thấy số được chỉnh rồi. bây giờ anh cần chỉnh lại chỗ
