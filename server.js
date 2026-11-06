@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
@@ -417,13 +418,59 @@ app.get('/api/download', (req, res) => {
 // KHÔNG dùng dấu "/" cuối: các đường dẫn tương đối trong tool.html (style.css,
 // js/..., templates/...) phải resolve về gốc "/" mới đúng.
 // ---------------------------------------------------------------------------
-const PORTAL_PAGES = { '/tool': 'tool.html', '/login': 'login.html', '/videos': 'videos.html', '/members': 'members.html' };
+const PORTAL_PAGES = { '/tool': 'tool.html', '/login': 'login.html', '/videos': 'videos.html', '/members': 'members.html', '/sso': 'sso.html' };
 Object.entries(PORTAL_PAGES).forEach(([route, file]) => {
   // Express non-strict: "/tool" match cả "/tool/" — tự redirect bỏ dấu "/" cuối
   app.get(route, (req, res) => {
     if (req.path !== route) return res.redirect(301, route);
     res.sendFile(path.join(__dirname, 'public', file));
   });
+});
+
+// ---------------------------------------------------------------------------
+// SSO TỪ FORUM (06/11/2026): forum nhúng iframe `/sso#t=<ticket>`.
+// Ticket = base64url(JSON{email, exp}).base64url(HMAC-SHA256), ký bằng TOOL_SSO_SECRET
+// dùng chung với forum, hạn 120 giây. Ghép theo email, không tự tạo tài khoản,
+// mọi role đều vào được nếu tài khoản `active`.
+// ---------------------------------------------------------------------------
+const TOOL_SSO_SECRET = process.env.TOOL_SSO_SECRET || '';
+
+function verifySsoTicket(ticket) {
+  const [payload, signature] = String(ticket || '').split('.');
+  if (!payload || !signature || !TOOL_SSO_SECRET) return null;
+  const expected = crypto.createHmac('sha256', TOOL_SSO_SECRET).update(payload).digest();
+  const received = Buffer.from(signature, 'base64url');
+  if (received.length !== expected.length || !crypto.timingSafeEqual(received, expected)) return null;
+  try {
+    const { email, exp } = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    if (typeof email !== 'string' || !email) return null;
+    if (typeof exp !== 'number' || exp * 1000 < Date.now()) return null;
+    return { email: email.trim().toLowerCase() };
+  } catch (e) {
+    return null;
+  }
+}
+
+app.post('/api/sso', async (req, res) => {
+  if (!supabaseAdmin || !TOOL_SSO_SECRET) return res.status(503).json({ code: 'not_configured' });
+  const ticket = verifySsoTicket(req.body && req.body.t);
+  if (!ticket) return res.status(401).json({ code: 'bad_ticket' });
+  try {
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles').select('id, status').eq('email', ticket.email).maybeSingle();
+    if (profileError) return res.status(500).json({ code: 'error' });
+    if (!profile) return res.status(404).json({ code: 'no_account', email: ticket.email });
+    if (profile.status !== 'active') {
+      return res.status(403).json({ code: profile.status === 'pending' ? 'pending' : 'blocked' });
+    }
+    // generateLink không gửi email; trình duyệt dùng hashed_token để verifyOtp ra phiên thật.
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({ type: 'magiclink', email: ticket.email });
+    const tokenHash = data && data.properties && data.properties.hashed_token;
+    if (error || !tokenHash) return res.status(500).json({ code: 'error' });
+    return res.json({ token_hash: tokenHash });
+  } catch (e) {
+    return res.status(500).json({ code: 'error' });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -642,7 +689,6 @@ app.post('/api/admin/delete-user', requireAdmin, async (req, res) => {
 // Cần chạy supabase/yeucau.sql một lần (thêm cột tieu_de, nhom_khach, lark_ok).
 // Bài kiểm phần gửi Lark: node scripts/kiem-lark.js (dùng máy chủ Lark giả).
 // ---------------------------------------------------------------------------
-const crypto = require('crypto');
 const LARK_WEBHOOK_URL = (process.env.LARK_WEBHOOK_URL || '').trim();
 const LARK_WEBHOOK_SECRET = (process.env.LARK_WEBHOOK_SECRET || '').trim();   // chỉ cần khi bot bật "Signature verification"
 const YC_TRANG_XEM = (process.env.YC_TRANG_XEM || 'https://tool.thinksmartinsurance.com/members').trim();
