@@ -74,15 +74,28 @@ Tài liệu này trước đây ghi *"Live URLs, same repo"* khiến người đ
 
 | Project Vercel | Tên miền | Repo nó đang trỏ | Vai trò |
 |---|---|---|---|
-| **`thinksmarttool-gy6f`** | **`tool.thinksmartinsurance.com`** + `thinksmarttool-gy6f.vercel.app` | `hadangtien0702-dot/Thinksmarttool` (**TÊN CŨ**) | ⭐ **BẢN LIVE THẬT — 77 sale dùng cái này** |
-| `thinksmarttool` | `editor-proposesalsale.vercel.app` | `thinksmart-dev/Thinksmarttool` (tên mới) | bản phụ, tên cũ, **không phải bản sale dùng** |
+| **`thinksmarttool-gy6f`** | **`tool.thinksmartinsurance.com`** + `thinksmarttool-gy6f.vercel.app` | `thinksmart-dev/Thinksmarttool` (nối lại 06/11/2026, **tự deploy**) | ⭐ **BẢN LIVE THẬT — 77 sale dùng cái này** |
+| `thinksmarttool` | `editor-proposesalsale.vercel.app` | `thinksmart-dev/Thinksmarttool` (còn mã chủ cũ, **KHÔNG tự deploy**, cố ý để nguyên) | bản phụ, tên cũ, **không phải bản sale dùng** |
 
 → **Deploy vào project `thinksmarttool` KHÔNG đổi gì trên `tool.thinksmartinsurance.com`.** Đã vấp đúng thế
 16/09: deploy xong, Vercel báo *Ready*, mà live vẫn v1.49 — vì bắn nhầm project.
 → **Muốn đổi bản live thì phải vào project `thinksmarttool-gy6f`.**
 → Kiểm nhanh project nào đang giữ tên miền: dashboard → thẻ project nào ghi `tool.thinksmartinsurance.com`.
 
-### ☠️ AUTO-DEPLOY ĐANG CHẾT (16/09/2026) — push KHÔNG còn tự lên live
+### ✅ AUTO-DEPLOY ĐÃ SỐNG LẠI (06/11/2026) — push vào `main` là lên thẳng bản live
+
+☠️ **Commit vào `main` lên thẳng bản 77 sale đang dùng, không ai kiểm trước.** Muốn thử thì đẩy lên nhánh riêng: Vercel tự tạo bản
+Preview, không đụng bản live. Hai cửa kiểm ở mục 2h của `CLAUDE.md` vẫn phải chạy TRƯỚC khi push.
+
+**Gốc thật (đo 06/11/2026):** repo đổi chủ thì tên cập nhật, mã ẩn thì không. Vercel ghi đúng `thinksmart-dev/Thinksmarttool`, đúng
+`repoId`, nhưng `repoOwnerId` vẫn là mã tài khoản cá nhân cũ (`233892992`; mã org là `329813329`), kèm `sourceless:true`. Settings → Git
+vẫn báo Connected nên nhìn không ra. Sửa bằng `vercel git disconnect` rồi `vercel git connect https://github.com/thinksmart-dev/Thinksmarttool`.
+Kiểm: commit trên nhánh tạm build sau 4 giây (`source=git`), project `thinksmarttool` chưa nối lại vẫn đứng yên.
+→ Thử auto-deploy phải dùng commit MỚI. Tạo nhánh trỏ commit có sẵn thì Vercel không chạy, dù đã nối đúng.
+→ So mã, đừng so tên: `gh api orgs/thinksmart-dev --jq .id` với `link.repoOwnerId` của `vercel api /v9/projects/<tên>` (Git Bash cần `MSYS_NO_PATHCONV=1`).
+
+**Lịch sử (16/09 → 06/11, giữ lại để không đi lại đường cũ). Phần giải thích "trỏ tên cũ" dưới đây là cách hiểu lúc đó, gốc thật là mã chủ ở trên:**
+
 
 Repo đã chuyển sang org `thinksmart-dev`, nhưng project **`thinksmarttool-gy6f` vẫn trỏ tên cũ**
 `hadangtien0702-dot/Thinksmarttool`. Vercel không nhận được sự kiện push từ org mới ⇒ **push xong
@@ -103,7 +116,7 @@ triệu chứng thật, nhưng **không phải nguyên nhân**. Một phép th�
 **Settings → Git** ghi **tên MỚI**. **Hai chỗ trong cùng một dashboard nói hai tên khác nhau = Vercel
 chưa cập nhật xong sau khi repo đổi chủ.**
 
-**CÁCH DEPLOY TAY (đang phải dùng cho tới khi nối lại Git):**
+**CÁCH DEPLOY TAY (dự phòng khi auto-deploy hỏng):**
 1. Vercel → project **`thinksmarttool-gy6f`** → **Deployments**
 2. Nút `…` góc phải trên → **Create Deployment**
 3. Dán **commit hash đầy đủ** (vd `19220f5329129b349975af50a072f52f3c27b1e6`)
@@ -122,9 +135,7 @@ CLI đang đăng nhập `hadangtien0702-8981` (có quyền project). Kiểm sau 
 sửa so với `git show <hash>:<file> | md5sum`, file không được lên (`/.env.local`, file dở) phải **404**.
 Lần 30/09 quên `-c core.autocrlf=false` ⇒ md5 live lệch; bỏ CR thì khớp từng byte (1.280 CR) — vô hại nhưng làm thước md5 báo sai.
 
-**VIỆC CÒN TREO — sửa gốc:** trong `thinksmarttool-gy6f` → Settings → Git → **Disconnect rồi Connect lại**
-vào `thinksmart-dev/Thinksmarttool` để auto-deploy sống lại. Chưa làm vì cần chủ tool duyệt (đụng cấu hình
-bản live của 77 người).
+**Việc treo "Disconnect rồi Connect lại": đã làm 06/11/2026, chủ tool duyệt.**
 
 ### Tên miền
 - **`https://tool.thinksmartinsurance.com`** ← custom domain (verified 2026-07-17) — SHARE THIS ONE.
