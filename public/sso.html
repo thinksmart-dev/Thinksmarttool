@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Đang đăng nhập | Thinksmart</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400..800;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/portal.css?v=92">
+</head>
+<body>
+  <script>
+    try { if (localStorage.getItem('tst-theme') === 'dark') document.body.classList.add('dark-theme'); } catch (e) {}
+  </script>
+
+  <!-- SSO từ forum (06/11/2026): forum nhúng iframe /sso#t=<vé>. Luồng và luật: server.js mục "SSO TỪ FORUM". -->
+  <div class="auth-wrap">
+    <div class="auth-card">
+      <p class="auth-sub" id="sso-loading" role="status" aria-live="polite">Đang đăng nhập…</p>
+
+      <div id="sso-no-account" style="display:none">
+        <div class="notice warn">
+          <span>🔒</span>
+          <div><b>Chưa có tài khoản Thinksmart Tool.</b><br>
+          <span id="sso-no-account-detail">Liên hệ admin để được cấp tài khoản.</span></div>
+        </div>
+        <a class="btn btn-secondary btn-block" href="/login">Đăng nhập bằng mật khẩu</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="/vendor/supabase-js.min.js?v=2.112.3"></script>
+  <script src="/js/portal/config.js?v=8"></script>
+  <script src="/js/portal/auth.js?v=11"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      const ticket = new URLSearchParams(location.hash.slice(1)).get('t') || '';
+      // Xoá ticket khỏi thanh địa chỉ và lịch sử để không ai chép lại URL mà dùng.
+      history.replaceState(null, '', location.pathname);
+
+      function goToLogin(state) {
+        location.replace(state ? '/login?state=' + state : '/login');
+      }
+
+      function ticketEmail(value) {
+        try {
+          const payload = value.split('.')[0].replace(/-/g, '+').replace(/_/g, '/');
+          return String(JSON.parse(atob(payload)).email || '').toLowerCase();
+        } catch (e) {
+          return '';
+        }
+      }
+
+      function showNoAccount(email) {
+        document.getElementById('sso-loading').style.display = 'none';
+        if (email) {
+          document.getElementById('sso-no-account-detail').textContent =
+            'Email ' + email + ' chưa có tài khoản. Liên hệ admin để được cấp.';
+        }
+        document.getElementById('sso-no-account').style.display = 'block';
+      }
+
+      async function requestTokenHash() {
+        try {
+          const response = await fetch('/api/sso', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ t: ticket }),
+          });
+          return await response.json();
+        } catch (e) {
+          return {};
+        }
+      }
+
+      async function signIn() {
+        if (!TSTAuth.configured || !ticket) return goToLogin();
+        const sb = TSTAuth.getClient();
+
+        const session = await TSTAuth.getSession();
+        if (session && (session.user.email || '').toLowerCase() === ticketEmail(ticket)) {
+          return location.replace('/');
+        }
+
+        const result = await requestTokenHash();
+        if (result.code === 'no_account') return showNoAccount(result.email);
+        if (result.code === 'pending' || result.code === 'blocked') return goToLogin(result.code);
+        if (!result.token_hash) return goToLogin();
+
+        if (session) await sb.auth.signOut();
+        const { error } = await sb.auth.verifyOtp({ token_hash: result.token_hash, type: 'magiclink' });
+        if (error) return goToLogin();
+        if (TSTAuth.logUsage) await TSTAuth.logUsage('login');
+        location.replace('/');
+      }
+
+      signIn();
+    })();
+  </script>
+</body>
+</html>
